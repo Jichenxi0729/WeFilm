@@ -311,15 +311,7 @@ const saveWebdavConfig = async () => {
       lastBackup: webdavStore.config.lastBackup
     }
     
-    const isDev = import.meta.env.DEV
-    let baseUrl
-    if (isDev) {
-      // 开发环境中，使用代理路径进行测试
-      baseUrl = '/api/webdav'
-    } else {
-      // 生产环境中，使用配置的URL
-      baseUrl = tempConfig.url.replace(/\/$/, '')
-    }
+    const baseUrl = '/api/webdav'
     
     const authHeader = 'Basic ' + btoa(unescape(encodeURIComponent(tempConfig.username + ':' + tempConfig.password)))
     

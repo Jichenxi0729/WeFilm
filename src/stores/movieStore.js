@@ -40,9 +40,7 @@ export const useMovieStore = defineStore('movie', () => {
         movies: movies.value
       }
       
-      const isDev = import.meta.env.DEV
-      const baseUrl = isDev ? '/api/webdav' : config.url.replace(/\/$/, '')
-      const url = baseUrl + '/' + filename
+      const url = '/api/webdav/' + filename
       const headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Basic ' + btoa(config.username + ':' + config.password)
