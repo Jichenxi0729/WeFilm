@@ -1,0 +1,12 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+[[redirects]]
+  from = "/api/webdav/*"
+  to = "https://rebun.infini-cloud.net/dav/:splat"
+  status = 200
+  force = true
+  [redirects.headers]
+    X-Forwarded-Host = ":host"
+    X-Forwarded-Proto = "https"

@@ -70,14 +70,7 @@ export const useWebdavStore = defineStore('webdav', () => {
     const backupData = createBackupData(movies)
     const jsonContent = JSON.stringify(backupData, null, 2)
     
-    let url
-    if (isDev) {
-      // 开发环境中，使用代理路径
-      url = '/api/webdav/' + filename
-    } else {
-      // 生产环境中，使用配置的URL
-      url = config.value.url.replace(/\/$/, '') + '/' + filename
-    }
+    const url = '/api/webdav/' + filename
     
     // 确保认证头正确生成，处理中文字符
     const authHeader = 'Basic ' + btoa(unescape(encodeURIComponent(config.value.username + ':' + config.value.password)))
@@ -119,12 +112,7 @@ export const useWebdavStore = defineStore('webdav', () => {
       throw new Error('WebDAV未配置')
     }
 
-    let url
-    if (isDev) {
-      url = '/api/webdav'
-    } else {
-      url = config.value.url.replace(/\/$/, '')
-    }
+    const url = '/api/webdav'
     
     const authHeader = 'Basic ' + btoa(unescape(encodeURIComponent(config.value.username + ':' + config.value.password)))
     
@@ -175,12 +163,7 @@ export const useWebdavStore = defineStore('webdav', () => {
       throw new Error('WebDAV未配置')
     }
 
-    let url
-    if (isDev) {
-      url = '/api/webdav/' + filename
-    } else {
-      url = config.value.url.replace(/\/$/, '') + '/' + filename
-    }
+    const url = '/api/webdav/' + filename
     
     const authHeader = 'Basic ' + btoa(unescape(encodeURIComponent(config.value.username + ':' + config.value.password)))
     
@@ -212,12 +195,7 @@ export const useWebdavStore = defineStore('webdav', () => {
       throw new Error('WebDAV未配置')
     }
 
-    let url
-    if (isDev) {
-      url = '/api/webdav'
-    } else {
-      url = config.value.url.replace(/\/$/, '')
-    }
+    const url = '/api/webdav'
     
     const authHeader = 'Basic ' + btoa(unescape(encodeURIComponent(config.value.username + ':' + config.value.password)))
     
@@ -253,14 +231,7 @@ export const useWebdavStore = defineStore('webdav', () => {
       throw new Error('WebDAV未配置')
     }
 
-    let url
-    if (isDev) {
-      // 开发环境中，使用代理路径
-      url = '/api/webdav'
-    } else {
-      // 生产环境中，使用配置的URL
-      url = config.value.url.replace(/\/$/, '')
-    }
+    const url = '/api/webdav'
     
     const authHeader = 'Basic ' + btoa(unescape(encodeURIComponent(config.value.username + ':' + config.value.password)))
     
