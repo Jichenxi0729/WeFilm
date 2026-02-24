@@ -176,6 +176,15 @@
             </div>
 
             <div>
+              <label class="block text-xs text-gray-500 mb-1">观看时间</label>
+              <input
+                v-model="form.watchDate"
+                type="date"
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+              />
+            </div>
+
+            <div>
               <label class="block text-xs text-gray-500 mb-1">个人评分</label>
               <div class="flex items-center gap-2">
                 <input
@@ -241,10 +250,12 @@ const selectedMovie = reactive({})
 const form = reactive({
   title: '',
   cover: '',
+  backdrop: '',
   overview: '',
   actors: [],
   releaseYear: '',
   genres: [],
+  watchDate: new Date().toISOString().split('T')[0],
   personalRating: 0,
   personalReview: '',
   mediaType: 'movie'
@@ -276,6 +287,7 @@ const selectResult = async (result) => {
   
   form.title = transformed.title || ''
   form.cover = transformed.cover || ''
+  form.backdrop = transformed.backdrop || ''
   form.overview = transformed.overview || ''
   form.releaseYear = transformed.releaseYear?.toString() || ''
   form.genres = mapTmdbGenres(transformed.genres) || []
@@ -306,8 +318,7 @@ const addToCollection = () => {
   }
   
   movieStore.addMovie({
-    ...form,
-    watchDate: new Date().toISOString().split('T')[0]
+    ...form
   })
   
   uiStore.showToast('添加成功', 'success')

@@ -1,7 +1,7 @@
 import axios from 'axios'
 
-const TMDB_BASE_URL = 'https://api.themoviedb.org/3'
-const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p'
+const TMDB_BASE_URL = 'https://api.tmdb.org/3'
+const IMAGE_BASE_URL = 'https://images.tmdb.org/t/p'
 
 const getApiKey = () => {
   const key = import.meta.env.VITE_TMDB_API_KEY || ''
@@ -26,12 +26,12 @@ tmdbClient.interceptors.request.use(config => {
 })
 
 export const getPosterUrl = (path, size = 'w185') => {
-  if (!path) return null
+  if (!path) return ''
   return `${IMAGE_BASE_URL}/${size}${path}`
 }
 
 export const getBackdropUrl = (path, size = 'w780') => {
-  if (!path) return null
+  if (!path) return ''
   return `${IMAGE_BASE_URL}/${size}${path}`
 }
 

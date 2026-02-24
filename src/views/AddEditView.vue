@@ -390,8 +390,10 @@ const searchTmdb = async () => {
 
 const selectTmdbResult = async (result) => {
   const transformed = transformTmdbResult(result)
+  
   form.title = transformed.title
   form.cover = transformed.cover
+  form.backdrop = transformed.backdrop
   form.overview = transformed.overview
   form.releaseYear = transformed.releaseYear
   form.genres = mapTmdbGenres(transformed.genres) || []
@@ -399,11 +401,13 @@ const selectTmdbResult = async (result) => {
   
   try {
     const isMovie = result.media_type === 'movie'
+    
     const details = isMovie 
       ? await getMovieDetails(result.id)
       : await getTvDetails(result.id)
     
-    if (details) {
+    // 只有当详情数据有背景图片时才更新
+    if (details && details.backdrop_path) {
       form.backdrop = getBackdropUrl(details.backdrop_path)
     }
     
@@ -416,7 +420,6 @@ const selectTmdbResult = async (result) => {
     }
   } catch (error) {
     console.error('Failed to fetch details:', error)
-    form.backdrop = transformed.backdrop
   }
   
   showTmdbInfo.value = false
