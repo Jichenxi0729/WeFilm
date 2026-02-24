@@ -301,7 +301,7 @@ export const useWebdavStore = defineStore('webdav', () => {
         const latestBackup = backupFiles.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified))[0]
         
         // 下载备份文件
-        const downloadUrl = isDev ? `/api/webdav/${latestBackup.name}` : `${url}/${latestBackup.name}`
+        const downloadUrl = `/api/webdav/${latestBackup.name}`
         const downloadResponse = await fetch(downloadUrl, {
           method: 'GET',
           headers: headers
@@ -410,7 +410,7 @@ export const useWebdavStore = defineStore('webdav', () => {
   }
 
   const downloadSpecificFile = async (filename, url, headers, isDev) => {
-    const downloadUrl = isDev ? `/api/webdav/${filename}` : `${url}/${filename}`
+    const downloadUrl = `/api/webdav/${filename}`
     const downloadResponse = await fetch(downloadUrl, {
       method: 'GET',
       headers: headers
