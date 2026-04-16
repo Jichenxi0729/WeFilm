@@ -285,7 +285,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useUiStore } from '../stores/uiStore'
 import { useMovieStore } from '../stores/movieStore'
 import { useWebdavStore } from '../stores/webdavStore'
@@ -440,13 +440,13 @@ const toggleAutoBackup = () => {
   localStorage.setItem('webdav-auto-backup', newAutoBackupState.toString())
 }
 
-const gridColumns = uiStore.gridColumns
+const gridColumns = computed(() => uiStore.gridColumns)
 
 const setGridColumns = (cols) => {
   uiStore.gridColumns = cols
 }
 
-const pureCoverMode = uiStore.pureCoverMode
+const pureCoverMode = computed(() => uiStore.pureCoverMode)
 
 const togglePureCover = () => {
   uiStore.pureCoverMode = !uiStore.pureCoverMode
