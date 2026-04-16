@@ -139,6 +139,7 @@ export const getPersonDetails = async (id) => {
 export const transformTmdbResult = (result) => {
   const isMovie = result.media_type === 'movie'
   const year = isMovie ? result.release_date : result.first_air_date
+  const yearNum = year ? parseInt(year.split('-')[0]) : null
   
   return {
     tmdbId: result.id,
@@ -146,7 +147,7 @@ export const transformTmdbResult = (result) => {
     cover: getPosterUrl(result.poster_path, 'w342'),
     backdrop: getBackdropUrl(result.backdrop_path),
     overview: result.overview,
-    releaseYear: year ? year.split('-')[0] : null,
+    releaseYear: yearNum,
     genres: [],
     mediaType: isMovie ? 'movie' : 'tv',
     voteAverage: result.vote_average,

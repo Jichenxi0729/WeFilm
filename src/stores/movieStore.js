@@ -147,10 +147,11 @@ export const useMovieStore = defineStore('movie', () => {
   }))
 
   const averageRating = computed(() => {
-    const rated = movies.value.filter(m => m.personalRating !== undefined && m.personalRating !== null)
+    const rated = movies.value.filter(m => m.personalRating !== undefined && m.personalRating !== null && m.personalRating !== '')
     if (rated.length === 0) return 0
-    const sum = rated.reduce((acc, m) => acc + m.personalRating, 0)
-    return (sum / rated.length).toFixed(1)
+    const sum = rated.reduce((acc, m) => acc + Number(m.personalRating), 0)
+    const avg = sum / rated.length
+    return isNaN(avg) ? 0 : avg.toFixed(1)
   })
 
   const currentMonthCount = computed(() => {
@@ -164,7 +165,13 @@ export const useMovieStore = defineStore('movie', () => {
   })
 
   const allYears = computed(() => {
-    const years = new Set(movies.value.map(m => m.releaseYear).filter(Boolean))
+    const years = new Set()
+    movies.value.forEach(m => {
+      const year = Number(m.releaseYear)
+      if (year && !isNaN(year)) {
+        years.add(year)
+      }
+    })
     return Array.from(years).sort((a, b) => b - a)
   })
 
@@ -177,7 +184,13 @@ export const useMovieStore = defineStore('movie', () => {
   })
 
   const allRatings = computed(() => {
-    const ratings = new Set(movies.value.map(m => m.personalRating).filter(r => r !== undefined && r !== null && r > 0))
+    const ratings = new Set()
+    movies.value.forEach(m => {
+      const rating = Number(m.personalRating)
+      if (rating && !isNaN(rating) && rating > 0) {
+        ratings.add(rating)
+      }
+    })
     return Array.from(ratings).sort((a, b) => a - b)
   })
 

@@ -3,6 +3,12 @@
   command = "npm run build"
 
 [[redirects]]
+  from = "/api/webdav/test-connection"
+  to = "https://rebun.infini-cloud.net/dav/test-connection"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/webdav/*"
   to = "https://rebun.infini-cloud.net/dav/:splat"
   status = 200

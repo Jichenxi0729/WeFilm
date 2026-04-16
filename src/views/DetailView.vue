@@ -3,10 +3,11 @@
     <div v-if="movie" class="relative">
       <div class="relative h-80 overflow-hidden">
         <img 
-          v-if="movie.backdrop || movie.cover" 
+          v-if="(movie.backdrop || movie.cover) && !backdropError" 
           :src="movie.backdrop || movie.cover" 
           :alt="movie.title"
           class="w-full h-full object-cover"
+          @error="handleBackdropError"
         />
         <div v-else class="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
           <svg class="w-24 h-24 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -25,10 +26,11 @@
         <div class="flex gap-4">
           <div class="w-36 h-52 rounded-xl overflow-hidden shadow-xl bg-gray-100 flex-shrink-0 -mt-16">
             <img 
-              v-if="movie.cover" 
+              v-if="movie.cover && !coverError" 
               :src="movie.cover" 
               :alt="movie.title"
               class="w-full h-full object-cover"
+              @error="handleCoverError"
             />
             <div v-else class="w-full h-full flex items-center justify-center">
               <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -130,7 +132,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMovieStore } from '../stores/movieStore'
 import { useUiStore } from '../stores/uiStore'
@@ -141,6 +143,17 @@ const movieStore = useMovieStore()
 const uiStore = useUiStore()
 
 const movie = computed(() => movieStore.getMovieById(route.params.id))
+
+const backdropError = ref(false)
+const coverError = ref(false)
+
+const handleBackdropError = () => {
+  backdropError.value = true
+}
+
+const handleCoverError = () => {
+  coverError.value = true
+}
 
 const mediaTypeLabel = computed(() => {
   const labels = {

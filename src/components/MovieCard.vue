@@ -5,10 +5,11 @@
   >
     <div class="flex-shrink-0 w-[60px] h-[80px] rounded-lg overflow-hidden bg-gray-200">
       <img 
-        v-if="movie.cover" 
+        v-if="movie.cover && !imageError" 
         :src="movie.cover" 
         :alt="movie.title"
         class="w-full h-full object-cover"
+        @error="handleImageError"
       />
       <div v-else class="w-full h-full flex items-center justify-center">
         <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -20,6 +21,7 @@
     <div class="flex-1 min-w-0 flex flex-col justify-between">
       <div>
         <h3 class="font-medium text-gray-900 truncate">{{ movie.title }}</h3>
+        <p v-if="movie.releaseYear" class="text-xs text-gray-400 mt-0.5">{{ movie.releaseYear }}</p>
         <p v-if="movie.overview" class="text-xs text-gray-500 mt-1 line-clamp-2">{{ movie.overview }}</p>
       </div>
       
@@ -37,12 +39,20 @@
 </template>
 
 <script setup>
-defineProps({
+import { ref } from 'vue'
+
+const props = defineProps({
   movie: {
     type: Object,
     required: true
   }
 })
+
+const imageError = ref(false)
+
+const handleImageError = () => {
+  imageError.value = true
+}
 
 defineEmits(['click'])
 </script>

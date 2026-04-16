@@ -21,7 +21,7 @@
             class="w-24 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center cursor-pointer border-2 border-dashed border-gray-300 hover:border-blue-500 transition-colors"
             @click="triggerCoverUpload"
           >
-            <img v-if="form.cover" :src="form.cover" class="w-full h-full object-cover" />
+            <img v-if="form.cover && !coverError" :src="form.cover" class="w-full h-full object-cover" @error="coverError = true" />
             <div v-else class="text-center text-gray-400">
               <svg class="w-8 h-8 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -287,6 +287,7 @@ const form = reactive({
 const availableGenres = ['剧情', '喜剧', '动作', '爱情', '悬疑', '惊悚', '科幻', '动画', '恐怖', '犯罪', '战争', '纪录片', '家庭', '奇幻', '冒险', '音乐', '历史', '西部', '传记', '运动']
 const newGenre = ref('')
 const coverInput = ref(null)
+const coverError = ref(false)
 const showTmdbInfo = ref(false)
 const tmdbQuery = ref('')
 const tmdbResults = ref([])

@@ -94,10 +94,9 @@
         <h3 class="text-sm font-medium text-gray-700 mb-3">筛选</h3>
         <FilterBar
           :years="movieStore.allYears"
-          :genres="movieStore.allGenres"
           :ratings="movieStore.allRatings"
+          v-model:selectedMediaType="selectedMediaType"
           v-model:selectedYear="selectedYear"
-          v-model:selectedGenre="selectedGenre"
           v-model:selectedRating="selectedRating"
         />
       </div>
@@ -185,8 +184,8 @@ const router = useRouter()
 const route = useRoute()
 const movieStore = useMovieStore()
 
+const selectedMediaType = ref('')
 const selectedYear = ref('')
-const selectedGenre = ref('')
 const selectedRating = ref('')
 
 const isCurrentRoute = (path) => {
@@ -196,16 +195,18 @@ const isCurrentRoute = (path) => {
 const filteredMovies = computed(() => {
   let movies = movieStore.movies
   
-  if (selectedYear.value) {
-    movies = movies.filter(m => m.releaseYear?.toString() === selectedYear.value)
+  if (selectedMediaType.value) {
+    movies = movies.filter(m => m.mediaType === selectedMediaType.value)
   }
   
-  if (selectedGenre.value) {
-    movies = movies.filter(m => m.genres?.includes(selectedGenre.value))
+  if (selectedYear.value) {
+    const selectedYearNum = Number(selectedYear.value)
+    movies = movies.filter(m => Number(m.releaseYear) === selectedYearNum)
   }
   
   if (selectedRating.value) {
-    movies = movies.filter(m => m.personalRating === Number(selectedRating.value))
+    const selectedRatingNum = Number(selectedRating.value)
+    movies = movies.filter(m => Number(m.personalRating) === selectedRatingNum)
   }
   
   return movies.sort((a, b) => new Date(b.watchDate) - new Date(a.watchDate))

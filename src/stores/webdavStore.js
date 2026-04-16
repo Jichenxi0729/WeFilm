@@ -195,7 +195,7 @@ export const useWebdavStore = defineStore('webdav', () => {
       throw new Error('WebDAV未配置')
     }
 
-    const url = '/api/webdav'
+    const url = '/api/webdav/test-connection'
     
     const authHeader = 'Basic ' + btoa(unescape(encodeURIComponent(config.value.username + ':' + config.value.password)))
     
@@ -205,11 +205,12 @@ export const useWebdavStore = defineStore('webdav', () => {
 
     try {
       const response = await fetch(url, {
-        method: 'PROPFIND',
+        method: 'PUT',
         headers: {
           ...headers,
-          'Depth': '0'
-        }
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ test: true })
       })
 
       if (!response.ok) {

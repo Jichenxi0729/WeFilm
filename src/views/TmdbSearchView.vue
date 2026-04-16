@@ -124,6 +124,7 @@
                     >
                       <option value="movie">电影</option>
                       <option value="tv">剧集</option>
+                      <option value="short">短剧</option>
                     </select>
                   </div>
                   <div class="flex-1">
@@ -291,7 +292,7 @@ const selectResult = async (result) => {
   form.overview = transformed.overview || ''
   form.releaseYear = transformed.releaseYear?.toString() || ''
   form.genres = mapTmdbGenres(transformed.genres) || []
-  form.mediaType = transformed.mediaType === 'movie' ? 'movie' : 'tv'
+  form.mediaType = form.mediaType === 'short' ? 'short' : (transformed.mediaType === 'movie' ? 'movie' : 'tv')
   form.actors = []
   form.personalRating = 0
   form.personalReview = ''

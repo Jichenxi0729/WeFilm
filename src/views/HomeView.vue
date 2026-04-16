@@ -24,17 +24,18 @@
         >
           <div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-gray-100">
             <img 
-              v-if="movie.cover" 
+              v-if="movie.cover && !imageErrors[movie.id]" 
               :src="movie.cover" 
               :alt="movie.title"
               class="w-full h-full object-cover"
+              @error="handleImageError(movie.id)"
             />
             <div v-else class="w-full h-full flex items-center justify-center">
               <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
               </svg>
             </div>
-            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent pt-8 pb-2 px-2">
+            <div v-if="!uiStore.pureCoverMode" class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent pt-8 pb-2 px-2">
               <p class="text-white text-xs font-medium truncate">{{ movie.title }}</p>
               <p v-if="movie.personalRating" class="text-yellow-400 text-xs mt-0.5">
                 ⭐ {{ movie.personalRating }}
@@ -139,7 +140,16 @@ const movieStore = useMovieStore()
 const uiStore = useUiStore()
 
 const searchKeyword = ref('')
-const activeTab = ref('all')
+const activeTab = computed({
+  get: () => uiStore.activeTab,
+  set: (value) => { uiStore.activeTab = value }
+})
+
+const imageErrors = ref({})
+
+const handleImageError = (movieId) => {
+  imageErrors.value[movieId] = true
+}
 
 const isCurrentRoute = (path) => {
   return route.path === path

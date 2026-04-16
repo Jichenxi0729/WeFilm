@@ -159,6 +159,19 @@
             </button>
           </div>
         </div>
+        <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+          <div>
+            <p class="text-gray-600">纯封面展示</p>
+            <p class="text-xs text-gray-400">隐藏作品名与评分</p>
+          </div>
+          <button
+            @click="togglePureCover"
+            class="px-4 py-2 rounded-lg text-sm transition-colors"
+            :class="pureCoverMode ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'"
+          >
+            {{ pureCoverMode ? '已开启' : '已关闭' }}
+          </button>
+        </div>
       </div>
 
       <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
@@ -182,12 +195,19 @@
               <p class="text-gray-600">导入数据</p>
               <p class="text-xs text-gray-400">从CSV文件导入作品</p>
             </div>
-            <label
-              class="px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 cursor-pointer"
+            <button
+              @click="openFilePicker"
+              class="px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600"
             >
               导入
-              <input type="file" accept=".csv" @change="importData" class="hidden" />
-            </label>
+            </button>
+            <input 
+              ref="fileInput"
+              type="file" 
+              accept=".csv,text/csv" 
+              @change="importData" 
+              class="hidden" 
+            />
           </div>
         </div>
       </div>
@@ -277,6 +297,8 @@ const uiStore = useUiStore()
 const movieStore = useMovieStore()
 const webdavStore = useWebdavStore()
 
+const fileInput = ref(null)
+
 const showWebdavConfig = ref(false)
 const webdavUrl = ref('')
 const webdavUsername = ref('')
@@ -311,7 +333,7 @@ const saveWebdavConfig = async () => {
       lastBackup: webdavStore.config.lastBackup
     }
     
-    const baseUrl = '/api/webdav'
+    const baseUrl = '/api/webdav/test-connection'
     
     const authHeader = 'Basic ' + btoa(unescape(encodeURIComponent(tempConfig.username + ':' + tempConfig.password)))
     
@@ -321,17 +343,17 @@ const saveWebdavConfig = async () => {
     
     console.log('WebDAV测试连接:', {
       url: baseUrl,
-      method: 'PROPFIND',
+      method: 'PUT',
       headers: headers
     })
     
-    // 使用PROPFIND方法进行WebDAV连接测试
     const response = await fetch(baseUrl, {
-      method: 'PROPFIND',
+      method: 'PUT',
       headers: {
         ...headers,
-        'Depth': '0'
-      }
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ test: true })
     })
     
     console.log('WebDAV响应:', response)
@@ -424,6 +446,12 @@ const setGridColumns = (cols) => {
   uiStore.gridColumns = cols
 }
 
+const pureCoverMode = uiStore.pureCoverMode
+
+const togglePureCover = () => {
+  uiStore.pureCoverMode = !uiStore.pureCoverMode
+}
+
 const goBack = () => {
   router.back()
 }
@@ -450,6 +478,10 @@ const goToTmdbSearch = () => {
 
 const goToMe = () => {
   router.push('/me')
+}
+
+const openFilePicker = () => {
+  fileInput.value.click()
 }
 
 const exportData = () => {
