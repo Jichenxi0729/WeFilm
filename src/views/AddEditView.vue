@@ -193,6 +193,14 @@
 
       <button
         v-if="isEditing"
+        @click="openTmdbUpdate"
+        class="w-full py-3 bg-blue-50 text-blue-600 rounded-xl font-medium hover:bg-blue-100 transition-colors"
+      >
+        从TMDB更新
+      </button>
+
+      <button
+        v-if="isEditing"
         @click="confirmDelete"
         class="w-full py-3 bg-red-50 text-red-600 rounded-xl font-medium hover:bg-red-100 transition-colors"
       >
@@ -375,6 +383,14 @@ const confirmDelete = () => {
   }
 }
 
+const openTmdbUpdate = () => {
+  tmdbQuery.value = form.title
+  showTmdbInfo.value = true
+  if (tmdbQuery.value.trim()) {
+    searchTmdb()
+  }
+}
+
 const searchTmdb = async () => {
   if (!tmdbQuery.value.trim()) return
   
@@ -399,7 +415,7 @@ const selectTmdbResult = async (result) => {
   form.releaseYear = transformed.releaseYear
   form.genres = mapTmdbGenres(transformed.genres) || []
   form.mediaType = transformed.mediaType
-  
+
   try {
     const isMovie = result.media_type === 'movie'
     
@@ -407,7 +423,6 @@ const selectTmdbResult = async (result) => {
       ? await getMovieDetails(result.id)
       : await getTvDetails(result.id)
     
-    // 只有当详情数据有背景图片时才更新
     if (details && details.backdrop_path) {
       form.backdrop = getBackdropUrl(details.backdrop_path)
     }
@@ -424,6 +439,7 @@ const selectTmdbResult = async (result) => {
   }
   
   showTmdbInfo.value = false
+  uiStore.showToast('已从TMDB更新数据（个人评分、评论、观看时间已保留）', 'success')
 }
 
 onMounted(() => {
