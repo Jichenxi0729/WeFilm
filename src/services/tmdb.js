@@ -76,6 +76,19 @@ export const searchTvShows = async (query) => {
   }
 }
 
+export const searchPeople = async (query) => {
+  if (!query) return []
+  try {
+    const response = await tmdbClient.get('/search/person', {
+      params: { query, language: 'zh-CN' }
+    })
+    return response.data.results.slice(0, 10)
+  } catch (error) {
+    console.error('TMDB person search error:', error)
+    throw error
+  }
+}
+
 export const getMovieDetails = async (id) => {
   try {
     const response = await tmdbClient.get(`/movie/${id}`, {

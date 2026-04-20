@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-50 pb-20">
-    <div class="bg-white sticky top-0 z-10 px-4 pt-4 pb-3 shadow-sm">
-      <div class="flex items-center justify-between mb-3">
+    <div class="bg-white sticky top-0 z-10 px-4 pt-2 pb-2 shadow-sm">
+      <div class="flex items-center justify-between">
         <button @click="goBack" class="p-2 -ml-2 hover:bg-gray-100 rounded-lg">
           <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -91,7 +91,16 @@
       </div>
 
       <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-        <h3 class="text-sm font-medium text-gray-700 mb-3">筛选</h3>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-medium text-gray-700">筛选</h3>
+          <button
+            v-if="selectedMediaType || selectedYear || selectedRating"
+            @click="clearFilters"
+            class="text-xs text-blue-500 hover:text-blue-600"
+          >
+            清除筛选
+          </button>
+        </div>
         <FilterBar
           :years="movieStore.allYears"
           :ratings="movieStore.allRatings"
@@ -147,15 +156,15 @@
         </svg>
       </button>
       
-      <button 
-        @click="goToTmdbSearch"
+      <button
+        @click="goToCalendar"
         class="flex flex-col items-center gap-1"
-        :class="isCurrentRoute('/tmdb-search') ? 'text-blue-500' : 'text-gray-400'"
+        :class="isCurrentRoute('/calendar') ? 'text-blue-500' : 'text-gray-400'"
       >
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
-        <span class="text-xs">搜索</span>
+        <span class="text-xs">日历</span>
       </button>
       
       <button 
@@ -173,7 +182,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMovieStore } from '../stores/movieStore'
 import StatCard from '../components/StatCard.vue'
@@ -184,9 +193,33 @@ const router = useRouter()
 const route = useRoute()
 const movieStore = useMovieStore()
 
-const selectedMediaType = ref('')
-const selectedYear = ref('')
-const selectedRating = ref('')
+const selectedMediaType = ref(movieStore.filterState.mediaType)
+const selectedYear = ref(movieStore.filterState.year)
+const selectedRating = ref(movieStore.filterState.rating)
+
+const updateFilter = (type, value) => {
+  if (type === 'mediaType') {
+    selectedMediaType.value = value
+    movieStore.setFilterState('mediaType', value)
+  } else if (type === 'year') {
+    selectedYear.value = value
+    movieStore.setFilterState('year', value)
+  } else if (type === 'rating') {
+    selectedRating.value = value
+    movieStore.setFilterState('rating', value)
+  }
+}
+
+watch(selectedMediaType, (val) => movieStore.setFilterState('mediaType', val))
+watch(selectedYear, (val) => movieStore.setFilterState('year', val))
+watch(selectedRating, (val) => movieStore.setFilterState('rating', val))
+
+const clearFilters = () => {
+  selectedMediaType.value = ''
+  selectedYear.value = ''
+  selectedRating.value = ''
+  movieStore.clearFilterState()
+}
 
 const isCurrentRoute = (path) => {
   return route.path === path
@@ -194,21 +227,21 @@ const isCurrentRoute = (path) => {
 
 const filteredMovies = computed(() => {
   let movies = movieStore.movies
-  
+
   if (selectedMediaType.value) {
     movies = movies.filter(m => m.mediaType === selectedMediaType.value)
   }
-  
+
   if (selectedYear.value) {
     const selectedYearNum = Number(selectedYear.value)
     movies = movies.filter(m => Number(m.releaseYear) === selectedYearNum)
   }
-  
+
   if (selectedRating.value) {
     const selectedRatingNum = Number(selectedRating.value)
     movies = movies.filter(m => Number(m.personalRating) === selectedRatingNum)
   }
-  
+
   return movies.sort((a, b) => new Date(b.watchDate) - new Date(a.watchDate))
 })
 
@@ -224,8 +257,8 @@ const goToAdd = () => {
   router.push('/add')
 }
 
-const goToTmdbSearch = () => {
-  router.push('/tmdb-search')
+const goToCalendar = () => {
+  router.push('/calendar')
 }
 
 const goToMe = () => {

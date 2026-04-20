@@ -32,6 +32,11 @@ const routes = [
     component: () => import('../views/StatsView.vue')
   },
   {
+    path: '/calendar',
+    name: 'Calendar',
+    component: () => import('../views/CalendarView.vue')
+  },
+  {
     path: '/tmdb-search',
     name: 'TmdbSearch',
     component: () => import('../views/TmdbSearchView.vue')

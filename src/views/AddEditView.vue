@@ -63,6 +63,18 @@
                   class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:border-blue-500"
                 />
               </div>
+              <div v-if="form.mediaType === 'movie'" class="flex-1">
+                <label class="block text-sm font-medium text-gray-600 mb-1">时长</label>
+                <div class="flex items-center gap-1">
+                  <input
+                    v-model="form.runtime"
+                    type="number"
+                    placeholder="120"
+                    class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:border-blue-500"
+                  />
+                  <span class="text-sm text-gray-500">分钟</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -279,12 +291,14 @@ const uiStore = useUiStore()
 const isEditing = computed(() => !!route.params.id)
 
 const form = reactive({
+  tmdbId: '',
   title: '',
   cover: '',
   backdrop: '',
   overview: '',
   actors: [],
   releaseYear: '',
+  runtime: null,
   watchDate: new Date().toISOString().split('T')[0],
   genres: [],
   personalRating: 0,
@@ -408,6 +422,7 @@ const searchTmdb = async () => {
 const selectTmdbResult = async (result) => {
   const transformed = transformTmdbResult(result)
   
+  form.tmdbId = transformed.tmdbId
   form.title = transformed.title
   form.cover = transformed.cover
   form.backdrop = transformed.backdrop
@@ -419,12 +434,27 @@ const selectTmdbResult = async (result) => {
   try {
     const isMovie = result.media_type === 'movie'
     
-    const details = isMovie 
-      ? await getMovieDetails(result.id)
-      : await getTvDetails(result.id)
-    
-    if (details && details.backdrop_path) {
-      form.backdrop = getBackdropUrl(details.backdrop_path)
+    if (isMovie) {
+      const details = await getMovieDetails(result.id)
+      if (details) {
+        if (details.backdrop_path) {
+          form.backdrop = getBackdropUrl(details.backdrop_path)
+        }
+        if (details.runtime) {
+          form.runtime = details.runtime
+        }
+      }
+      
+      const credits = await getMovieCredits(result.id)
+      if (credits && credits.cast) {
+        form.actors = credits.cast.slice(0, 10).map(actor => actor.name)
+      }
+    } else {
+      form.runtime = null
+      const credits = await getTvCredits(result.id)
+      if (credits && credits.cast) {
+        form.actors = credits.cast.slice(0, 10).map(actor => actor.name)
+      }
     }
     
     const credits = isMovie 

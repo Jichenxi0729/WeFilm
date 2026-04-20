@@ -1,8 +1,11 @@
 import { defineStore } from 'pinia'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useMovieStore } from './movieStore'
+import { searchPeople, getPersonDetails } from '../services/tmdb'
 
 export const useActorStore = defineStore('actor', () => {
+  const actorTmdbInfo = ref({})
+
   const getActors = computed(() => {
     const movieStore = useMovieStore()
     const actorMap = new Map()
@@ -13,7 +16,8 @@ export const useActorStore = defineStore('actor', () => {
           if (!actorMap.has(actor)) {
             actorMap.set(actor, {
               name: actor,
-              movies: []
+              movies: [],
+              tmdbId: movie.actorTmdbIds?.[actor] || null
             })
           }
           actorMap.get(actor).movies.push({
@@ -21,7 +25,8 @@ export const useActorStore = defineStore('actor', () => {
             title: movie.title,
             cover: movie.cover,
             releaseYear: movie.releaseYear,
-            mediaType: movie.mediaType
+            mediaType: movie.mediaType,
+            overview: movie.overview
           })
         })
       }
@@ -43,9 +48,42 @@ export const useActorStore = defineStore('actor', () => {
     return actor ? actor.movies.length : 0
   }
 
+  const fetchActorTmdbInfo = async (actorName) => {
+    if (actorTmdbInfo.value[actorName]) {
+      return actorTmdbInfo.value[actorName]
+    }
+
+    try {
+      const results = await searchPeople(actorName)
+      if (results && results.length > 0) {
+        const person = results.find(p => p.name.toLowerCase() === actorName.toLowerCase()) || results[0]
+        const details = await getPersonDetails(person.id)
+        const info = {
+          name: details.name,
+          avatar: details.profile_path ? `https://image.tmdb.org/t/p/w185${details.profile_path}` : null,
+          biography: details.biography || '暂无简介',
+          birthday: details.birthday || null,
+          knownFor: details.known_for_department || null,
+          tmdbId: details.id
+        }
+        actorTmdbInfo.value[actorName] = info
+        return info
+      }
+    } catch (error) {
+      console.error('Failed to fetch actor TMDB info:', error)
+    }
+    return null
+  }
+
+  const getActorTmdbInfo = (actorName) => {
+    return actorTmdbInfo.value[actorName] || null
+  }
+
   return {
     getActors,
     getActorByName,
-    getActorMovieCount
+    getActorMovieCount,
+    fetchActorTmdbInfo,
+    getActorTmdbInfo
   }
 })

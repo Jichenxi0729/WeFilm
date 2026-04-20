@@ -45,6 +45,9 @@
               <span v-if="movie.mediaType" class="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-700">
                 {{ mediaTypeLabel }}
               </span>
+              <span v-if="movie.runtime" class="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-700">
+                {{ movie.runtime }}分钟
+              </span>
             </div>
             <div v-if="movie.personalRating" class="flex items-center gap-2 mt-2">
               <span class="text-yellow-400 text-lg">⭐</span>
@@ -99,6 +102,22 @@
           <span class="text-gray-700">{{ formatDate(movie.watchDate) }}</span>
         </div>
       </div>
+
+      <a
+        v-if="movie.tmdbId"
+        :href="tmdbUrl"
+        target="_blank"
+        class="bg-white rounded-xl p-4 shadow-sm flex items-center gap-3 hover:bg-gray-50 transition-colors"
+      >
+        <img :src="'/tmdb-logo.svg?v=' + Date.now()" alt="TMDB" class="w-8 h-8 object-contain" />
+        <div class="flex-1">
+          <p class="text-sm font-medium text-gray-700">在 TMDB 查看</p>
+          <p class="text-xs text-gray-400">查看更多作品信息</p>
+        </div>
+        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
+      </a>
     </div>
 
     <div v-else class="flex items-center justify-center h-screen">
@@ -143,6 +162,12 @@ const movieStore = useMovieStore()
 const uiStore = useUiStore()
 
 const movie = computed(() => movieStore.getMovieById(route.params.id))
+
+const tmdbUrl = computed(() => {
+  if (!movie.value?.tmdbId) return ''
+  const mediaType = movie.value.mediaType === 'movie' ? 'movie' : 'tv'
+  return `https://www.themoviedb.org/${mediaType}/${movie.value.tmdbId}`
+})
 
 const backdropError = ref(false)
 const coverError = ref(false)
@@ -191,4 +216,6 @@ const confirmDelete = () => {
     }, 500)
   }
 }
+
+
 </script>

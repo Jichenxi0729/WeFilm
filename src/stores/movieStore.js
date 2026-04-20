@@ -6,8 +6,44 @@ const AUTO_BACKUP_KEY = 'webdav-auto-backup'
 
 export const useMovieStore = defineStore('movie', () => {
   const movies = ref([])
+  const filterState = ref({
+    mediaType: '',
+    year: '',
+    rating: ''
+  })
   let lastBackupTime = 0
   const BACKUP_DEBOUNCE = 60000
+
+  const FILTER_STORAGE_KEY = 'movie-record-filter'
+
+  const loadFilterState = () => {
+    const stored = localStorage.getItem(FILTER_STORAGE_KEY)
+    if (stored) {
+      try {
+        filterState.value = JSON.parse(stored)
+      } catch (e) {
+        console.error('Failed to parse filter state:', e)
+      }
+    }
+  }
+
+  const saveFilterState = () => {
+    localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filterState.value))
+  }
+
+  const setFilterState = (type, value) => {
+    if (type in filterState.value) {
+      filterState.value[type] = value
+      saveFilterState()
+    }
+  }
+
+  const clearFilterState = () => {
+    filterState.value = { mediaType: '', year: '', rating: '' }
+    saveFilterState()
+  }
+
+  loadFilterState()
 
   const loadFromStorage = () => {
     const stored = localStorage.getItem(STORAGE_KEY)
@@ -202,6 +238,9 @@ export const useMovieStore = defineStore('movie', () => {
 
   return {
     movies,
+    filterState,
+    setFilterState,
+    clearFilterState,
     addMovie,
     updateMovie,
     deleteMovie,

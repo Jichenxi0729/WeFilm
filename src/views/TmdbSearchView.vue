@@ -48,9 +48,12 @@
         <div 
           v-for="result in results"
           :key="result.id"
-          class="flex gap-3 p-3 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer"
+          class="flex gap-3 p-3 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer relative"
           @click="selectResult(result)"
         >
+          <div v-if="isAlreadyAdded(result)" class="absolute top-2 right-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+            已添加
+          </div>
           <div class="w-16 h-24 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
             <img 
               v-if="result.poster_path"
@@ -249,6 +252,7 @@ const showAddForm = ref(false)
 const selectedMovie = reactive({})
 
 const form = reactive({
+  tmdbId: '',
   title: '',
   cover: '',
   backdrop: '',
@@ -261,6 +265,24 @@ const form = reactive({
   personalReview: '',
   mediaType: 'movie'
 })
+
+const isAlreadyAdded = (result) => {
+  const tmdbId = result.id
+  const title = (result.title || result.name).toLowerCase().trim()
+  const year = (result.release_date || result.first_air_date || '').split('-')[0]
+
+  return movieStore.movies.some(movie => {
+    if (movie.tmdbId && movie.tmdbId === tmdbId) {
+      return true
+    }
+    const movieTitle = (movie.title || '').toLowerCase().trim()
+    const movieYear = movie.releaseYear?.toString() || ''
+    if (movieTitle === title && movieYear === year && movieYear) {
+      return true
+    }
+    return false
+  })
+}
 
 const goBack = () => {
   router.back()
@@ -281,11 +303,17 @@ const search = async () => {
 }
 
 const selectResult = async (result) => {
+  if (isAlreadyAdded(result)) {
+    uiStore.showToast('该作品已添加', 'warning')
+    return
+  }
+
   const transformed = transformTmdbResult(result)
   
   selectedMovie.title = transformed.title
   selectedMovie.cover = transformed.cover
   
+  form.tmdbId = transformed.tmdbId
   form.title = transformed.title || ''
   form.cover = transformed.cover || ''
   form.backdrop = transformed.backdrop || ''
