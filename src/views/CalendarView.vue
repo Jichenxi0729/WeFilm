@@ -16,14 +16,11 @@
       <Calendar
         :movies="movieStore.movies"
         @select="onCalendarSelect"
-        @month-change="onMonthChange"
-        :initial-year="movieStore.calendarState.year"
-        :initial-month="movieStore.calendarState.month"
       />
 
-      <div v-if="movieStore.calendarState.selectedDate">
+      <div v-if="selectedDate">
         <div class="flex items-center justify-between mb-2">
-          <h3 class="text-sm font-medium text-gray-700">{{ movieStore.calendarState.selectedDate }}</h3>
+          <h3 class="text-sm font-medium text-gray-700">{{ selectedDate }}</h3>
           <button @click="clearSelection" class="text-xs text-blue-500 hover:text-blue-600">
             清除
           </button>
@@ -126,7 +123,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMovieStore } from '../stores/movieStore'
 import Calendar from '../components/Calendar.vue'
@@ -136,17 +133,19 @@ const router = useRouter()
 const route = useRoute()
 const movieStore = useMovieStore()
 
+const selectedDate = ref(null)
+
 const selectedDateMovies = computed(() => {
-  const selectedDate = movieStore.calendarState.selectedDate
-  if (!selectedDate) return []
+  if (!selectedDate.value) return []
   return movieStore.movies
-    .filter(m => m.watchDate === selectedDate)
+    .filter(m => m.watchDate === selectedDate.value)
     .sort((a, b) => new Date(b.watchDate) - new Date(a.watchDate))
 })
 
 const monthStats = computed(() => {
-  const year = movieStore.calendarState.year
-  const month = movieStore.calendarState.month
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = today.getMonth()
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
 
@@ -173,16 +172,11 @@ const monthStats = computed(() => {
 })
 
 const onCalendarSelect = (date) => {
-  movieStore.setCalendarState('selectedDate', date)
-}
-
-const onMonthChange = ({ year, month }) => {
-  movieStore.setCalendarState('year', year)
-  movieStore.setCalendarState('month', month)
+  selectedDate.value = date
 }
 
 const clearSelection = () => {
-  movieStore.setCalendarState('selectedDate', null)
+  selectedDate.value = null
 }
 
 const goBack = () => {

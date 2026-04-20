@@ -15,13 +15,6 @@ export const useMovieStore = defineStore('movie', () => {
   const BACKUP_DEBOUNCE = 60000
 
   const FILTER_STORAGE_KEY = 'movie-record-filter'
-  const CALENDAR_STORAGE_KEY = 'movie-record-calendar'
-
-  const calendarState = ref({
-    year: new Date().getFullYear(),
-    month: new Date().getMonth(),
-    selectedDate: null
-  })
 
   const loadFilterState = () => {
     const stored = localStorage.getItem(FILTER_STORAGE_KEY)
@@ -50,30 +43,7 @@ export const useMovieStore = defineStore('movie', () => {
     saveFilterState()
   }
 
-  const loadCalendarState = () => {
-    const stored = localStorage.getItem(CALENDAR_STORAGE_KEY)
-    if (stored) {
-      try {
-        calendarState.value = JSON.parse(stored)
-      } catch (e) {
-        console.error('Failed to parse calendar state:', e)
-      }
-    }
-  }
-
-  const saveCalendarState = () => {
-    localStorage.setItem(CALENDAR_STORAGE_KEY, JSON.stringify(calendarState.value))
-  }
-
-  const setCalendarState = (type, value) => {
-    if (type in calendarState.value) {
-      calendarState.value[type] = value
-      saveCalendarState()
-    }
-  }
-
   loadFilterState()
-  loadCalendarState()
 
   const loadFromStorage = () => {
     const stored = localStorage.getItem(STORAGE_KEY)
@@ -90,14 +60,14 @@ export const useMovieStore = defineStore('movie', () => {
   const autoBackup = async () => {
     const webdavConfig = localStorage.getItem('webdav-config')
     if (!webdavConfig) return
-
+    
     try {
       const config = JSON.parse(webdavConfig)
       if (!config.autoBackup || !config.url || !config.username || !config.password) return
-
+      
       const now = Date.now()
       if (now - lastBackupTime < BACKUP_DEBOUNCE) return
-
+      
       const filename = `movie-record-backup-${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '-')}.json`
       const backupData = {
         version: '1.0',
@@ -105,54 +75,54 @@ export const useMovieStore = defineStore('movie', () => {
         movieCount: movies.value.length,
         movies: movies.value
       }
-
+      
       const url = '/api/webdav/' + filename
       const headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Basic ' + btoa(config.username + ':' + config.password)
       }
-
+      
       const response = await fetch(url, {
         method: 'PUT',
         headers: headers,
         body: JSON.stringify(backupData, null, 2)
       })
-
+      
       if (response.ok) {
         lastBackupTime = now
-        localStorage.setItem(AUTO_BACKUP_KEY, now.toString())
+        config.lastBackup = new Date().toISOString()
+        localStorage.setItem('webdav-config', JSON.stringify(config))
+        console.log('Auto backup successful:', filename)
+      } else {
+        const errorText = await response.text().catch(() => '')
+        console.error('Auto backup failed:', response.status, response.statusText, errorText)
       }
     } catch (e) {
-      console.error('Auto backup failed:', e)
+      console.error('Auto backup error:', e)
     }
   }
 
-  const saveToStorage = () => {
+  watch(movies, () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(movies.value))
     autoBackup()
-  }
+  }, { deep: true })
+
+  loadFromStorage()
 
   const addMovie = (movie) => {
     const newMovie = {
       ...movie,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      watchDate: movie.watchDate || new Date().toISOString().split('T')[0]
     }
-    movies.value.push(newMovie)
-    saveToStorage()
+    movies.value.unshift(newMovie)
     return newMovie
   }
 
   const updateMovie = (id, updates) => {
     const index = movies.value.findIndex(m => m.id === id)
     if (index !== -1) {
-      movies.value[index] = {
-        ...movies.value[index],
-        ...updates,
-        updatedAt: new Date().toISOString()
-      }
-      saveToStorage()
+      movies.value[index] = { ...movies.value[index], ...updates }
       return movies.value[index]
     }
     return null
@@ -162,7 +132,6 @@ export const useMovieStore = defineStore('movie', () => {
     const index = movies.value.findIndex(m => m.id === id)
     if (index !== -1) {
       movies.value.splice(index, 1)
-      saveToStorage()
       return true
     }
     return false
@@ -173,53 +142,92 @@ export const useMovieStore = defineStore('movie', () => {
   }
 
   const getMoviesByType = (type) => {
-    if (!type) return movies.value
+    if (type === 'all') return movies.value
     return movies.value.filter(m => m.mediaType === type)
   }
 
   const searchMovies = (keyword) => {
     if (!keyword) return movies.value
     const lower = keyword.toLowerCase()
-    return movies.value.filter(m =>
+    return movies.value.filter(m => 
       m.title.toLowerCase().includes(lower) ||
-      (m.actors && m.actors.some(a => a.name.toLowerCase().includes(lower)))
+      m.overview?.toLowerCase().includes(lower) ||
+      m.actors?.some(a => a.toLowerCase().includes(lower))
     )
   }
 
-  const filterMovies = computed(() => {
+  const filterMovies = ({ type, years, genres, ratingRange }) => {
     return movies.value.filter(m => {
-      if (filterState.value.mediaType && m.mediaType !== filterState.value.mediaType) return false
-      if (filterState.value.year && m.year !== filterState.value.year) return false
-      if (filterState.value.rating && (!m.rating || m.rating < Number(filterState.value.rating))) return false
+      if (type && type !== 'all' && m.mediaType !== type) return false
+      if (years && years.length > 0 && !years.includes(m.releaseYear)) return false
+      if (genres && genres.length > 0 && !m.genres?.some(g => genres.includes(g))) return false
+      if (ratingRange && m.personalRating !== undefined) {
+        if (m.personalRating < ratingRange[0] || m.personalRating > ratingRange[1]) return false
+      }
       return true
     })
-  })
+  }
 
   const sortedByWatchDate = computed(() => {
-    return [...movies.value].sort((a, b) => {
-      if (!a.watchDate) return 1
-      if (!b.watchDate) return -1
-      return new Date(b.watchDate) - new Date(a.watchDate)
-    })
+    return [...movies.value].sort((a, b) => 
+      new Date(b.watchDate) - new Date(a.watchDate)
+    )
   })
 
   const totalCount = computed(() => movies.value.length)
 
-  const movieCountByType = computed(() => {
-    const counts = { movie: 0, tv: 0, short: 0 }
-    movies.value.forEach(m => {
-      if (m.mediaType && counts.hasOwnProperty(m.mediaType)) {
-        counts[m.mediaType]++
-      }
-    })
-    return counts
-  })
+  const movieCountByType = computed(() => ({
+    movie: movies.value.filter(m => m.mediaType === 'movie').length,
+    tv: movies.value.filter(m => m.mediaType === 'tv').length,
+    short: movies.value.filter(m => m.mediaType === 'short').length
+  }))
 
   const averageRating = computed(() => {
-    const rated = movies.value.filter(m => m.rating && m.rating > 0)
+    const rated = movies.value.filter(m => m.personalRating !== undefined && m.personalRating !== null && m.personalRating !== '')
     if (rated.length === 0) return 0
-    const sum = rated.reduce((acc, m) => acc + m.rating, 0)
-    return (sum / rated.length).toFixed(1)
+    const sum = rated.reduce((acc, m) => acc + Number(m.personalRating), 0)
+    const avg = sum / rated.length
+    return isNaN(avg) ? 0 : avg.toFixed(1)
+  })
+
+  const currentMonthCount = computed(() => {
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth()
+    return movies.value.filter(m => {
+      const watchDate = new Date(m.watchDate)
+      return watchDate.getFullYear() === currentYear && watchDate.getMonth() === currentMonth
+    }).length
+  })
+
+  const allYears = computed(() => {
+    const years = new Set()
+    movies.value.forEach(m => {
+      const year = Number(m.releaseYear)
+      if (year && !isNaN(year)) {
+        years.add(year)
+      }
+    })
+    return Array.from(years).sort((a, b) => b - a)
+  })
+
+  const allGenres = computed(() => {
+    const genres = new Set()
+    movies.value.forEach(m => {
+      m.genres?.forEach(g => genres.add(g))
+    })
+    return Array.from(genres).sort()
+  })
+
+  const allRatings = computed(() => {
+    const ratings = new Set()
+    movies.value.forEach(m => {
+      const rating = Number(m.personalRating)
+      if (rating && !isNaN(rating) && rating > 0) {
+        ratings.add(rating)
+      }
+    })
+    return Array.from(ratings).sort((a, b) => a - b)
   })
 
   const getRandomMovie = () => {
@@ -228,52 +236,11 @@ export const useMovieStore = defineStore('movie', () => {
     return movies.value[randomIndex]
   }
 
-  const getYearStats = computed(() => {
-    const stats = {}
-    movies.value.forEach(m => {
-      if (m.year) {
-        if (!stats[m.year]) {
-          stats[m.year] = { total: 0, types: {} }
-        }
-        stats[m.year].total++
-        if (m.mediaType) {
-          stats[m.year].types[m.mediaType] = (stats[m.year].types[m.mediaType] || 0) + 1
-        }
-      }
-    })
-    return stats
-  })
-
-  const getRecentWatchDates = (days = 30) => {
-    const dates = new Set()
-    const now = new Date()
-    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
-
-    movies.value.forEach(m => {
-      if (m.watchDate) {
-        const watchDate = new Date(m.watchDate)
-        if (watchDate >= startDate && watchDate <= now) {
-          dates.add(m.watchDate)
-        }
-      }
-    })
-
-    return Array.from(dates).sort()
-  }
-
-  loadFromStorage()
-
-  watch(movies, () => {
-    saveToStorage()
-  }, { deep: true })
-
   return {
     movies,
     filterState,
-    calendarState,
     setFilterState,
     clearFilterState,
-    setCalendarState,
     addMovie,
     updateMovie,
     deleteMovie,
@@ -285,9 +252,10 @@ export const useMovieStore = defineStore('movie', () => {
     totalCount,
     movieCountByType,
     averageRating,
-    getRandomMovie,
-    getYearStats,
-    getRecentWatchDates,
-    loadFromStorage
+    currentMonthCount,
+    allYears,
+    allGenres,
+    allRatings,
+    getRandomMovie
   }
 })

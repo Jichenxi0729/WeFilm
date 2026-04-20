@@ -57,24 +57,16 @@ const props = defineProps({
   movies: {
     type: Array,
     default: () => []
-  },
-  initialYear: {
-    type: Number,
-    default: () => new Date().getFullYear()
-  },
-  initialMonth: {
-    type: Number,
-    default: () => new Date().getMonth()
   }
 })
 
-const emit = defineEmits(['select', 'monthChange'])
+const emit = defineEmits(['select'])
 
 const weekDays = ['日', '一', '二', '三', '四', '五', '六']
 
 const today = new Date()
-const currentYear = ref(props.initialYear)
-const currentMonth = ref(props.initialMonth)
+const currentYear = ref(today.getFullYear())
+const currentMonth = ref(today.getMonth())
 const selectedDate = ref(null)
 
 const year = computed(() => currentYear.value)
@@ -136,7 +128,6 @@ const prevMonth = () => {
   } else {
     currentMonth.value--
   }
-  emit('monthChange', { year: currentYear.value, month: currentMonth.value })
 }
 
 const nextMonth = () => {
@@ -146,7 +137,6 @@ const nextMonth = () => {
   } else {
     currentMonth.value++
   }
-  emit('monthChange', { year: currentYear.value, month: currentMonth.value })
 }
 
 const selectDate = (date) => {
@@ -158,8 +148,8 @@ const selectDate = (date) => {
   emit('select', selectedDate.value)
 }
 
-watch([() => props.initialYear, () => props.initialMonth], ([newYear, newMonth]) => {
-  currentYear.value = newYear
-  currentMonth.value = newMonth
+watch([currentYear, currentMonth], () => {
+  selectedDate.value = null
+  emit('select', null)
 })
 </script>
