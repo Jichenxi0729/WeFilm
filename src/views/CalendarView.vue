@@ -15,12 +15,15 @@
     <div class="p-3 space-y-3">
       <Calendar
         :movies="movieStore.movies"
+        :initial-year="movieStore.calendarState.year"
+        :initial-month="movieStore.calendarState.month"
         @select="onCalendarSelect"
+        @month-change="onMonthChange"
       />
 
-      <div v-if="selectedDate">
+      <div v-if="movieStore.calendarState.selectedDate">
         <div class="flex items-center justify-between mb-2">
-          <h3 class="text-sm font-medium text-gray-700">{{ selectedDate }}</h3>
+          <h3 class="text-sm font-medium text-gray-700">{{ movieStore.calendarState.selectedDate }}</h3>
           <button @click="clearSelection" class="text-xs text-blue-500 hover:text-blue-600">
             清除
           </button>
@@ -133,19 +136,16 @@ const router = useRouter()
 const route = useRoute()
 const movieStore = useMovieStore()
 
-const selectedDate = ref(null)
-
 const selectedDateMovies = computed(() => {
-  if (!selectedDate.value) return []
+  if (!movieStore.calendarState.selectedDate) return []
   return movieStore.movies
-    .filter(m => m.watchDate === selectedDate.value)
+    .filter(m => m.watchDate === movieStore.calendarState.selectedDate)
     .sort((a, b) => new Date(b.watchDate) - new Date(a.watchDate))
 })
 
 const monthStats = computed(() => {
-  const today = new Date()
-  const year = today.getFullYear()
-  const month = today.getMonth()
+  const year = movieStore.calendarState.year
+  const month = movieStore.calendarState.month
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
 
@@ -172,11 +172,16 @@ const monthStats = computed(() => {
 })
 
 const onCalendarSelect = (date) => {
-  selectedDate.value = date
+  movieStore.setCalendarState('selectedDate', date)
+}
+
+const onMonthChange = ({ year, month }) => {
+  movieStore.setCalendarState('year', year)
+  movieStore.setCalendarState('month', month)
 }
 
 const clearSelection = () => {
-  selectedDate.value = null
+  movieStore.setCalendarState('selectedDate', null)
 }
 
 const goBack = () => {

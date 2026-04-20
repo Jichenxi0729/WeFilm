@@ -51,12 +51,20 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, inject } from 'vue'
 
 const props = defineProps({
   movies: {
     type: Array,
     default: () => []
+  },
+  initialYear: {
+    type: Number,
+    default: () => new Date().getFullYear()
+  },
+  initialMonth: {
+    type: Number,
+    default: () => new Date().getMonth()
   }
 })
 
@@ -65,8 +73,8 @@ const emit = defineEmits(['select'])
 const weekDays = ['日', '一', '二', '三', '四', '五', '六']
 
 const today = new Date()
-const currentYear = ref(today.getFullYear())
-const currentMonth = ref(today.getMonth())
+const currentYear = ref(props.initialYear)
+const currentMonth = ref(props.initialMonth)
 const selectedDate = ref(null)
 
 const year = computed(() => currentYear.value)
@@ -128,6 +136,7 @@ const prevMonth = () => {
   } else {
     currentMonth.value--
   }
+  emit('month-change', { year: currentYear.value, month: currentMonth.value })
 }
 
 const nextMonth = () => {
@@ -137,6 +146,7 @@ const nextMonth = () => {
   } else {
     currentMonth.value++
   }
+  emit('month-change', { year: currentYear.value, month: currentMonth.value })
 }
 
 const selectDate = (date) => {
@@ -148,8 +158,8 @@ const selectDate = (date) => {
   emit('select', selectedDate.value)
 }
 
-watch([currentYear, currentMonth], () => {
-  selectedDate.value = null
-  emit('select', null)
+watch([() => props.initialYear, () => props.initialMonth], (newYear, newMonth) => {
+  currentYear.value = newYear
+  currentMonth.value = newMonth
 })
 </script>

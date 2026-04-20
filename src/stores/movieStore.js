@@ -11,10 +11,16 @@ export const useMovieStore = defineStore('movie', () => {
     year: '',
     rating: ''
   })
+  const calendarState = ref({
+    year: new Date().getFullYear(),
+    month: new Date().getMonth(),
+    selectedDate: null
+  })
   let lastBackupTime = 0
   const BACKUP_DEBOUNCE = 60000
 
   const FILTER_STORAGE_KEY = 'movie-record-filter'
+  const CALENDAR_STORAGE_KEY = 'movie-record-calendar'
 
   const loadFilterState = () => {
     const stored = localStorage.getItem(FILTER_STORAGE_KEY)
@@ -24,6 +30,28 @@ export const useMovieStore = defineStore('movie', () => {
       } catch (e) {
         console.error('Failed to parse filter state:', e)
       }
+    }
+  }
+
+  const loadCalendarState = () => {
+    const stored = localStorage.getItem(CALENDAR_STORAGE_KEY)
+    if (stored) {
+      try {
+        calendarState.value = JSON.parse(stored)
+      } catch (e) {
+        console.error('Failed to parse calendar state:', e)
+      }
+    }
+  }
+
+  const saveCalendarState = () => {
+    localStorage.setItem(CALENDAR_STORAGE_KEY, JSON.stringify(calendarState.value))
+  }
+
+  const setCalendarState = (type, value) => {
+    if (type in calendarState.value) {
+      calendarState.value[type] = value
+      saveCalendarState()
     }
   }
 
@@ -44,6 +72,7 @@ export const useMovieStore = defineStore('movie', () => {
   }
 
   loadFilterState()
+  loadCalendarState()
 
   const loadFromStorage = () => {
     const stored = localStorage.getItem(STORAGE_KEY)
@@ -239,8 +268,10 @@ export const useMovieStore = defineStore('movie', () => {
   return {
     movies,
     filterState,
+    calendarState,
     setFilterState,
     clearFilterState,
+    setCalendarState,
     addMovie,
     updateMovie,
     deleteMovie,
