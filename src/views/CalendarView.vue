@@ -15,10 +15,10 @@
     <div class="p-3 space-y-3">
       <Calendar
         :movies="movieStore.movies"
-        :initial-year="movieStore.calendarState.year"
-        :initial-month="movieStore.calendarState.month"
         @select="onCalendarSelect"
         @month-change="onMonthChange"
+        :initial-year="movieStore.calendarState.year"
+        :initial-month="movieStore.calendarState.month"
       />
 
       <div v-if="movieStore.calendarState.selectedDate">
@@ -126,7 +126,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMovieStore } from '../stores/movieStore'
 import Calendar from '../components/Calendar.vue'
@@ -137,9 +137,10 @@ const route = useRoute()
 const movieStore = useMovieStore()
 
 const selectedDateMovies = computed(() => {
-  if (!movieStore.calendarState.selectedDate) return []
+  const selectedDate = movieStore.calendarState.selectedDate
+  if (!selectedDate) return []
   return movieStore.movies
-    .filter(m => m.watchDate === movieStore.calendarState.selectedDate)
+    .filter(m => m.watchDate === selectedDate)
     .sort((a, b) => new Date(b.watchDate) - new Date(a.watchDate))
 })
 
