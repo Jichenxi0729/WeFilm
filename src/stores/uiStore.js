@@ -4,6 +4,7 @@ import { ref, watch } from 'vue'
 const GRID_COLUMNS_KEY = 'movie-record-grid-columns'
 const ACTIVE_TAB_KEY = 'movie-record-active-tab'
 const PURE_COVER_KEY = 'movie-record-pure-cover'
+const CHART_SETTINGS_KEY = 'movie-record-chart-settings'
 
 export const useUiStore = defineStore('ui', () => {
   const isLoading = ref(false)
@@ -36,6 +37,28 @@ export const useUiStore = defineStore('ui', () => {
 
   const pureCoverMode = ref(loadPureCover())
 
+  const defaultChartSettings = {
+    showTypePie: true,
+    showRatingDist: true,
+    showMonthlyLine: true,
+    showGenreBar: true,
+    chartOrder: ['typePie', 'ratingDist', 'monthlyLine', 'genreBar']
+  }
+
+  const loadChartSettings = () => {
+    const stored = localStorage.getItem(CHART_SETTINGS_KEY)
+    if (stored) {
+      try {
+        return { ...defaultChartSettings, ...JSON.parse(stored) }
+      } catch (e) {
+        return defaultChartSettings
+      }
+    }
+    return defaultChartSettings
+  }
+
+  const chartSettings = ref(loadChartSettings())
+
   watch(gridColumns, (newValue) => {
     localStorage.setItem(GRID_COLUMNS_KEY, newValue.toString())
   })
@@ -47,6 +70,10 @@ export const useUiStore = defineStore('ui', () => {
   watch(pureCoverMode, (newValue) => {
     localStorage.setItem(PURE_COVER_KEY, newValue.toString())
   })
+
+  watch(chartSettings, (newValue) => {
+    localStorage.setItem(CHART_SETTINGS_KEY, JSON.stringify(newValue))
+  }, { deep: true })
 
   const setLoading = (loading, text = '') => {
     isLoading.value = loading
@@ -69,6 +96,20 @@ export const useUiStore = defineStore('ui', () => {
     }, 3000)
   }
 
+  const toggleChartVisibility = (chartKey) => {
+    if (chartKey in chartSettings.value) {
+      chartSettings.value[chartKey] = !chartSettings.value[chartKey]
+    }
+  }
+
+  const updateChartOrder = (newOrder) => {
+    chartSettings.value.chartOrder = newOrder
+  }
+
+  const resetChartSettings = () => {
+    chartSettings.value = { ...defaultChartSettings }
+  }
+
   return {
     isLoading,
     loadingText,
@@ -78,9 +119,13 @@ export const useUiStore = defineStore('ui', () => {
     gridColumns,
     activeTab,
     pureCoverMode,
+    chartSettings,
     setLoading,
     openTmdbModal,
     closeTmdbModal,
-    showToast
+    showToast,
+    toggleChartVisibility,
+    updateChartOrder,
+    resetChartSettings
   }
 })

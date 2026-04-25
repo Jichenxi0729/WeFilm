@@ -175,6 +175,104 @@
       </div>
 
       <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-medium text-gray-700">统计图表设置</h2>
+          <button
+            @click="resetChartSettings"
+            class="text-xs text-gray-400 hover:text-gray-600"
+          >
+            重置
+          </button>
+        </div>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                </svg>
+              </div>
+              <div>
+                <p class="text-gray-600 text-sm">类型分布图</p>
+                <p class="text-xs text-gray-400">环形图展示电影/剧集/短剧</p>
+              </div>
+            </div>
+            <button
+              @click="toggleChart('showTypePie')"
+              class="px-3 py-1.5 rounded-lg text-sm transition-colors"
+              :class="uiStore.chartSettings.showTypePie ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'"
+            >
+              {{ uiStore.chartSettings.showTypePie ? '显示' : '隐藏' }}
+            </button>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-lg bg-yellow-100 flex items-center justify-center">
+                <svg class="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+              </div>
+              <div>
+                <p class="text-gray-600 text-sm">评分分布图</p>
+                <p class="text-xs text-gray-400">柱状图展示1-10分分布</p>
+              </div>
+            </div>
+            <button
+              @click="toggleChart('showRatingDist')"
+              class="px-3 py-1.5 rounded-lg text-sm transition-colors"
+              :class="uiStore.chartSettings.showRatingDist ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'"
+            >
+              {{ uiStore.chartSettings.showRatingDist ? '显示' : '隐藏' }}
+            </button>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4v16" />
+                </svg>
+              </div>
+              <div>
+                <p class="text-gray-600 text-sm">月观看趋势</p>
+                <p class="text-xs text-gray-400">折线图展示近12个月</p>
+              </div>
+            </div>
+            <button
+              @click="toggleChart('showMonthlyLine')"
+              class="px-3 py-1.5 rounded-lg text-sm transition-colors"
+              :class="uiStore.chartSettings.showMonthlyLine ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'"
+            >
+              {{ uiStore.chartSettings.showMonthlyLine ? '显示' : '隐藏' }}
+            </button>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-lg bg-pink-100 flex items-center justify-center">
+                <svg class="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+              </div>
+              <div>
+                <p class="text-gray-600 text-sm">类型统计图</p>
+                <p class="text-xs text-gray-400">横向柱状图展示类型排行</p>
+              </div>
+            </div>
+            <button
+              @click="toggleChart('showGenreBar')"
+              class="px-3 py-1.5 rounded-lg text-sm transition-colors"
+              :class="uiStore.chartSettings.showGenreBar ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'"
+            >
+              {{ uiStore.chartSettings.showGenreBar ? '显示' : '隐藏' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <h2 class="text-sm font-medium text-gray-700 mb-3">数据管理</h2>
         <div class="space-y-3">
           <div class="flex items-center justify-between">
@@ -450,6 +548,14 @@ const pureCoverMode = computed(() => uiStore.pureCoverMode)
 
 const togglePureCover = () => {
   uiStore.pureCoverMode = !uiStore.pureCoverMode
+}
+
+const toggleChart = (chartKey) => {
+  uiStore.toggleChartVisibility(chartKey)
+}
+
+const resetChartSettings = () => {
+  uiStore.resetChartSettings()
 }
 
 const goBack = () => {
