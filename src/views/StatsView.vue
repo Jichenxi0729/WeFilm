@@ -46,16 +46,6 @@
             </svg>
             <span class="text-sm">月观看趋势</span>
           </button>
-          <button
-            @click="toggleChart('showGenreBar')"
-            class="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors"
-            :class="showGenreBar ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-            </svg>
-            <span class="text-sm">类型统计</span>
-          </button>
         </div>
 
         <template v-if="showTypePie">
@@ -92,21 +82,9 @@
             />
           </div>
         </template>
-
-        <template v-if="showGenreBar && movieStore.allGenres.length > 0">
-          <div class="bg-gray-50 rounded-lg p-3">
-            <h3 class="text-sm font-medium text-gray-700 mb-3">类型分布</h3>
-            <StatsChart
-              type="bar"
-              :data="genreBarData"
-              :height="Math.max(200, genreBarData.labels.length * 40)"
-              :options="horizontalBarOptions"
-            />
-          </div>
-        </template>
       </div>
 
-      <div class="grid grid-cols-3 gap-3">
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
           <div class="flex items-start justify-between">
             <div>
@@ -305,7 +283,6 @@ const selectedRating = ref(movieStore.filterState.rating)
 const showTypePie = ref(JSON.parse(localStorage.getItem('showTypePie')) || false)
 const showRatingDist = ref(JSON.parse(localStorage.getItem('showRatingDist')) || false)
 const showMonthlyLine = ref(JSON.parse(localStorage.getItem('showMonthlyLine')) || false)
-const showGenreBar = ref(JSON.parse(localStorage.getItem('showGenreBar')) || false)
 
 const updateFilter = (type, value) => {
   if (type === 'mediaType') {
@@ -473,34 +450,7 @@ const monthlyLineData = computed(() => {
   }
 })
 
-const genreBarData = computed(() => {
-  const genreCounts = {}
-  filteredMovies.value.forEach(m => {
-    m.genres?.forEach(g => {
-      genreCounts[g] = (genreCounts[g] || 0) + 1
-    })
-  })
 
-  const sortedGenres = Object.entries(genreCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-
-  const colors = [
-    '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308',
-    '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1'
-  ]
-
-  return {
-    labels: sortedGenres.map(([genre]) => genre),
-    datasets: [{
-      label: '作品数量',
-      data: sortedGenres.map(([, count]) => count),
-      backgroundColor: colors.slice(0, sortedGenres.length),
-      borderRadius: 6,
-      borderSkipped: false
-    }]
-  }
-})
 
 const barOptions = {
   plugins: {
@@ -550,30 +500,7 @@ const lineOptions = {
   }
 }
 
-const horizontalBarOptions = {
-  indexAxis: 'y',
-  plugins: {
-    legend: {
-      display: false
-    }
-  },
-  scales: {
-    x: {
-      beginAtZero: true,
-      ticks: {
-        stepSize: 1
-      },
-      grid: {
-        color: '#f3f4f6'
-      }
-    },
-    y: {
-      grid: {
-        display: false
-      }
-    }
-  }
-}
+
 
 const goBack = () => {
   router.back()
@@ -609,9 +536,6 @@ const toggleChart = (chartKey) => {
   } else if (chartKey === 'showMonthlyLine') {
     showMonthlyLine.value = !showMonthlyLine.value
     localStorage.setItem('showMonthlyLine', showMonthlyLine.value)
-  } else if (chartKey === 'showGenreBar') {
-    showGenreBar.value = !showGenreBar.value
-    localStorage.setItem('showGenreBar', showGenreBar.value)
   }
 }
 </script>
