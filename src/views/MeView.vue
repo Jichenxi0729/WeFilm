@@ -466,6 +466,8 @@ const handleAuth = async () => {
       showAuthForm.value = false
       authEmail.value = ''
       authPassword.value = ''
+      // 登录成功后立即从 Supabase 加载数据
+      await movieStore.loadFromSupabase()
       await checkAndPromptMigration()
     } else {
       authError.value = result.error

@@ -9,8 +9,18 @@
         @tmdb-click="goToTmdbSearch"
       />
       
-      <div class="mt-3">
+      <div class="mt-3 flex items-center justify-between">
         <CategoryTabs v-model="activeTab" />
+        <button
+          v-if="movieStore.movies.length > 0"
+          @click="goToRandom"
+          class="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+          title="随机选择一部作品"
+        >
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -58,16 +68,6 @@
         </button>
       </div>
     </div>
-
-    <button
-      v-if="movieStore.movies.length > 0"
-      @click="goToRandom"
-      class="fixed bottom-24 right-4 w-14 h-14 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
-    >
-      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-      </svg>
-    </button>
 
     <nav class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-gray-200 px-6 py-3 flex justify-around items-center z-10">
       <button 
