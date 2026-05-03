@@ -182,7 +182,9 @@ export const useMovieStore = defineStore('movie', () => {
       }
     } else {
       // 未登录：写 IndexedDB
-      const record = await idb.addMovie(movie)
+      // 确保 movie 有唯一的 id
+      const movieWithId = { ...movie, id: movie.id || self.crypto.randomUUID() }
+      const record = await idb.addMovie(movieWithId)
       movies.value.unshift(record)
       autoBackup()
       return record
