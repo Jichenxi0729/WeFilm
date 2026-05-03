@@ -12,8 +12,131 @@
 
     <div class="p-4 space-y-4">
       <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+        <h2 class="text-sm font-medium text-gray-700 mb-3">云端同步</h2>
+
+        <div v-if="!showAuthForm">
+          <div v-if="authStore.isLoggedIn" class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-600">登录状态</p>
+                <p class="text-xs text-green-500">已登录</p>
+              </div>
+              <div class="text-right">
+                <p class="text-sm text-gray-700">{{ authStore.userEmail }}</p>
+              </div>
+            </div>
+            <div class="flex gap-2 pt-2">
+              <button
+                @click="handleLogout"
+                :disabled="authStore.loading"
+                class="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 disabled:opacity-50"
+              >
+                {{ authStore.loading ? '登出中...' : '退出登录' }}
+              </button>
+            </div>
+          </div>
+          <div v-else class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-600">本地模式</p>
+                <p class="text-xs text-gray-400">数据保存在本设备</p>
+              </div>
+              <button
+                @click="showAuthForm = true"
+                class="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600"
+              >
+                登录云端
+              </button>
+            </div>
+            <p v-if="!isSupabaseConfigured" class="text-xs text-orange-500 mt-2">
+              请先配置 Supabase 环境变量
+            </p>
+          </div>
+        </div>
+
+        <div v-else class="space-y-3">
+          <div class="flex gap-2 mb-3">
+            <button
+              @click="authMode = 'login'"
+              class="flex-1 py-2 text-sm rounded-lg transition-colors"
+              :class="authMode === 'login' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'"
+            >
+              登录
+            </button>
+            <button
+              @click="authMode = 'register'"
+              class="flex-1 py-2 text-sm rounded-lg transition-colors"
+              :class="authMode === 'register' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'"
+            >
+              注册
+            </button>
+          </div>
+
+          <div>
+            <label class="text-xs text-gray-500">邮箱</label>
+            <input
+              v-model="authEmail"
+              type="email"
+              placeholder="your@email.com"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mt-1"
+            />
+          </div>
+          <div>
+            <label class="text-xs text-gray-500">密码</label>
+            <input
+              v-model="authPassword"
+              type="password"
+              placeholder="密码"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mt-1"
+            />
+          </div>
+
+          <div v-if="authError" class="text-xs text-red-500">{{ authError }}</div>
+          <div v-if="authSuccess" class="text-xs text-green-500">{{ authSuccess }}</div>
+
+          <div class="flex gap-2 pt-2">
+            <button
+              @click="handleAuth"
+              :disabled="authStore.loading || !authEmail || !authPassword"
+              class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 disabled:opacity-50"
+            >
+              {{ authStore.loading ? '处理中...' : (authMode === 'login' ? '登录' : '注册') }}
+            </button>
+            <button
+              @click="showAuthForm = false; authError = ''; authSuccess = ''"
+              class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm"
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="showMigrationPrompt" class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <h3 class="text-sm font-medium text-blue-700 mb-2">数据迁移</h3>
+        <p class="text-xs text-blue-600 mb-3">
+          检测到您有 {{ localDataCount }} 条本地数据。是否迁移到云端？
+        </p>
+        <div class="flex gap-2">
+          <button
+            @click="handleMigrate"
+            :disabled="isMigrating"
+            class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 disabled:opacity-50"
+          >
+            {{ isMigrating ? '迁移中...' : '迁移数据' }}
+          </button>
+          <button
+            @click="showMigrationPrompt = false"
+            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm"
+          >
+            暂不迁移
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <h2 class="text-sm font-medium text-gray-700 mb-3">WebDAV云备份</h2>
-        
+
         <div v-if="!showWebdavConfig" class="space-y-3">
           <div class="flex items-center justify-between">
             <div>
@@ -75,7 +198,7 @@
                 {{ isBackingUp ? '备份中...' : '创建版本' }}
               </button>
             </div>
-            
+
             <div class="flex gap-2 pt-2">
               <button
                 @click="syncFromWebdav"
@@ -201,12 +324,12 @@
             >
               导入
             </button>
-            <input 
+            <input
               ref="fileInput"
-              type="file" 
-              accept=".csv,text/csv" 
-              @change="importData" 
-              class="hidden" 
+              type="file"
+              accept=".csv,text/csv"
+              @change="importData"
+              class="hidden"
             />
           </div>
         </div>
@@ -228,7 +351,7 @@
     </div>
 
     <nav class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-gray-200 px-6 py-3 flex justify-around items-center z-10">
-      <button 
+      <button
         @click="goToHome"
         class="flex flex-col items-center gap-1"
         :class="isCurrentRoute('/') ? 'text-blue-500' : 'text-gray-500'"
@@ -238,8 +361,8 @@
         </svg>
         <span class="text-xs text-gray-700">首页</span>
       </button>
-      
-      <button 
+
+      <button
         @click="goToStats"
         class="flex flex-col items-center gap-1"
         :class="isCurrentRoute('/stats') ? 'text-blue-500' : 'text-gray-500'"
@@ -249,8 +372,8 @@
         </svg>
         <span class="text-xs text-gray-700">统计</span>
       </button>
-      
-      <button 
+
+      <button
         @click="goToAdd"
         class="w-14 h-14 -mt-6 bg-blue-500 rounded-full shadow-lg flex items-center justify-center hover:bg-blue-600 transition-colors"
       >
@@ -258,7 +381,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
       </button>
-      
+
       <button
         @click="goToCalendar"
         class="flex flex-col items-center gap-1"
@@ -269,8 +392,8 @@
         </svg>
         <span class="text-xs">日历</span>
       </button>
-      
-      <button 
+
+      <button
         @click="goToMe"
         class="flex flex-col items-center gap-1"
         :class="isCurrentRoute('/me') ? 'text-blue-500' : 'text-gray-500'"
@@ -285,10 +408,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useUiStore } from '../stores/uiStore'
 import { useMovieStore } from '../stores/movieStore'
 import { useWebdavStore } from '../stores/webdavStore'
+import { useAuthStore } from '../stores/authStore'
+import { isSupabaseConfigured } from '../lib/supabase'
+import * as idb from '../lib/indexeddb'
 import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
@@ -296,6 +422,7 @@ const route = useRoute()
 const uiStore = useUiStore()
 const movieStore = useMovieStore()
 const webdavStore = useWebdavStore()
+const authStore = useAuthStore()
 
 const fileInput = ref(null)
 
@@ -307,6 +434,17 @@ const isTesting = ref(false)
 const isBackingUp = ref(false)
 const isSyncing = ref(false)
 
+const showAuthForm = ref(false)
+const authMode = ref('login')
+const authEmail = ref('')
+const authPassword = ref('')
+const authError = ref('')
+const authSuccess = ref('')
+
+const showMigrationPrompt = ref(false)
+const localDataCount = ref(0)
+const isMigrating = ref(false)
+
 webdavUrl.value = webdavStore.config.url
 webdavUsername.value = webdavStore.config.username
 webdavPassword.value = webdavStore.config.password
@@ -317,12 +455,85 @@ const formatDate = (dateStr) => {
   return date.toLocaleString('zh-CN')
 }
 
+const handleAuth = async () => {
+  authError.value = ''
+  authSuccess.value = ''
+
+  if (authMode.value === 'login') {
+    const result = await authStore.signIn(authEmail.value, authPassword.value)
+    if (result.success) {
+      authSuccess.value = '登录成功！'
+      showAuthForm.value = false
+      authEmail.value = ''
+      authPassword.value = ''
+      await checkAndPromptMigration()
+    } else {
+      authError.value = result.error
+    }
+  } else {
+    const result = await authStore.signUp(authEmail.value, authPassword.value)
+    if (result.success) {
+      authSuccess.value = '注册成功！请查收验证邮件。'
+      authEmail.value = ''
+      authPassword.value = ''
+    } else {
+      authError.value = result.error
+    }
+  }
+}
+
+const handleLogout = async () => {
+  await authStore.signOut()
+  await movieStore.switchToLocal()
+}
+
+const checkAndPromptMigration = async () => {
+  if (!authStore.isLoggedIn) return
+
+  try {
+    const localData = await idb.getAllMovies()
+    localDataCount.value = localData.length
+
+    if (localDataCount.value > 0) {
+      showMigrationPrompt.value = true
+    }
+  } catch (e) {
+    console.error('检查本地数据失败:', e)
+  }
+}
+
+const handleMigrate = async () => {
+  isMigrating.value = true
+  try {
+    const count = await movieStore.migrateLocalToSupabase()
+    showMigrationPrompt.value = false
+    alert(`成功迁移 ${count} 条数据到云端！`)
+  } catch (e) {
+    alert('迁移失败: ' + e.message)
+  } finally {
+    isMigrating.value = false
+  }
+}
+
+onMounted(async () => {
+  await authStore.initAuth()
+  if (authStore.isLoggedIn) {
+    await checkAndPromptMigration()
+  }
+})
+
+watch(() => authStore.isLoggedIn, async (loggedIn) => {
+  if (loggedIn) {
+    await checkAndPromptMigration()
+  }
+})
+
 const saveWebdavConfig = async () => {
   if (!webdavUrl.value || !webdavUsername.value || !webdavPassword.value) {
     alert('请填写完整的WebDAV配置')
     return
   }
-  
+
   isTesting.value = true
   try {
     const tempConfig = {
@@ -332,21 +543,21 @@ const saveWebdavConfig = async () => {
       autoBackup: webdavStore.config.autoBackup || false,
       lastBackup: webdavStore.config.lastBackup
     }
-    
+
     const baseUrl = '/api/webdav/test-connection'
-    
+
     const authHeader = 'Basic ' + btoa(unescape(encodeURIComponent(tempConfig.username + ':' + tempConfig.password)))
-    
+
     const headers = {
       'Authorization': authHeader
     }
-    
+
     console.log('WebDAV测试连接:', {
       url: baseUrl,
       method: 'PUT',
       headers: headers
     })
-    
+
     const response = await fetch(baseUrl, {
       method: 'PUT',
       headers: {
@@ -355,14 +566,14 @@ const saveWebdavConfig = async () => {
       },
       body: JSON.stringify({ test: true })
     })
-    
+
     console.log('WebDAV响应:', response)
-    
+
     if (!response.ok) {
       const errorText = await response.text().catch(() => '')
       throw new Error(`连接失败: ${response.status} ${response.statusText} ${errorText}`)
     }
-    
+
     webdavStore.updateConfig(tempConfig)
     alert('配置保存成功，连接测试通过！')
     showWebdavConfig.value = false
@@ -379,11 +590,11 @@ const backupToWebdav = async () => {
     alert('没有数据可以备份')
     return
   }
-  
+
   isBackingUp.value = true
   try {
     const result = await webdavStore.uploadToWebdav(movieStore.movies, false)
-    
+
     if (result.isLatest) {
       alert('备份成功！文件已更新到最新版本')
     } else {
@@ -401,7 +612,7 @@ const createVersionedBackup = async () => {
     alert('没有数据可以备份')
     return
   }
-  
+
   isBackingUp.value = true
   try {
     const result = await webdavStore.uploadToWebdav(movieStore.movies, true)
@@ -418,7 +629,7 @@ const syncFromWebdav = async () => {
     alert('请先配置WebDAV')
     return
   }
-  
+
   isSyncing.value = true
   try {
     const result = await webdavStore.syncFromWebdav(movieStore)
@@ -501,7 +712,7 @@ const exportData = () => {
   ])
 
   const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
-  
+
   const BOM = '\uFEFF'
   const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })
   const link = document.createElement('a')
@@ -523,7 +734,7 @@ const importData = (event) => {
     try {
       const text = e.target.result
       const lines = text.split('\n').filter(line => line.trim())
-      
+
       if (lines.length < 2) {
         alert('CSV文件格式不正确')
         return
@@ -567,10 +778,10 @@ const parseCSVLine = (line) => {
   const result = []
   let current = ''
   let inQuotes = false
-  
+
   for (let i = 0; i < line.length; i++) {
     const char = line[i]
-    
+
     if (char === '"') {
       inQuotes = !inQuotes
     } else if (char === ',' && !inQuotes) {
@@ -581,7 +792,7 @@ const parseCSVLine = (line) => {
     }
   }
   result.push(current.trim())
-  
+
   return result
 }
 </script>
