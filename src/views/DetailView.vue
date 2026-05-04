@@ -211,9 +211,7 @@ const confirmDelete = () => {
   if (confirm('确定要删除这部作品吗？')) {
     movieStore.deleteMovie(route.params.id)
     uiStore.showToast('删除成功', 'success')
-    setTimeout(() => {
-      router.push('/')
-    }, 500)
+    router.push('/')
   }
 }
 

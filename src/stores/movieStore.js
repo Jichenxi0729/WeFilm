@@ -45,6 +45,15 @@ export const useMovieStore = defineStore('movie', () => {
   const loading = ref(false)
   let lastBackupTime = 0
   const BACKUP_DEBOUNCE = 60000
+  
+  // 在 store 初始化时获取 authStore 实例（使用 shallowRef 避免响应式问题）
+  const authStore = { current: null }
+  const getAuthStore = () => {
+    if (!authStore.current) {
+      authStore.current = useAuthStore()
+    }
+    return authStore.current
+  }
 
   // ========== Filter State ==========
   const loadFilterState = () => {
@@ -67,8 +76,7 @@ export const useMovieStore = defineStore('movie', () => {
   // ========== 判断当前模式 ==========
   const isLoggedIn = () => {
     try {
-      const authStore = useAuthStore()
-      return authStore.isLoggedIn
+      return getAuthStore().isLoggedIn
     } catch { return false }
   }
 
@@ -127,7 +135,10 @@ export const useMovieStore = defineStore('movie', () => {
     loading.value = true
     try {
       if (isLoggedIn()) {
-        await loadFromSupabase()
+        // 加载速度优先：先从本地缓存快速加载
+        await loadFromLocal()
+        // 然后在后台静默同步云端数据
+        syncFromSupabase().catch(console.error)
       } else {
         await loadFromLocal()
       }
@@ -135,10 +146,87 @@ export const useMovieStore = defineStore('movie', () => {
       loading.value = false
     }
   }
+  
+  // 后台同步云端增量数据（不阻塞UI）
+  const syncFromSupabase = async () => {
+    try {
+      // 获取本地最后同步时间
+      const lastSyncTime = localStorage.getItem('last-sync-time')
+      
+      if (lastSyncTime) {
+        try {
+          // 尝试增量同步：只获取上次同步后变化的数据
+          const { data: updated, error } = await supabase
+            .from('movies')
+            .select('*')
+            .gt('updatedAt', lastSyncTime)
+            .order('"watchDate"', { ascending: false })
+          
+          if (error) {
+            console.warn('Incremental sync failed, falling back to full sync:', error)
+            throw error
+          }
+          
+          if (updated && updated.length > 0) {
+            // 更新本地数据
+            updated.forEach(remoteMovie => {
+              const localIndex = movies.value.findIndex(m => m.id === remoteMovie.id)
+              const localMovie = dbToLocal(remoteMovie)
+              
+              if (localIndex >= 0) {
+                // 更新现有记录
+                movies.value[localIndex] = localMovie
+              } else {
+                // 添加新记录
+                movies.value.unshift(localMovie)
+              }
+            })
+            // 强制响应式更新
+            movies.value = [...movies.value]
+            // 更新本地缓存
+            await idb.bulkImport(movies.value)
+            console.log(`Synced ${updated.length} updated movies`)
+          }
+        } catch (e) {
+          // 增量同步失败，执行全量同步
+          await performFullSync()
+        }
+      } else {
+        // 首次同步：全量同步
+        await performFullSync()
+      }
+      
+      // 更新最后同步时间
+      localStorage.setItem('last-sync-time', new Date().toISOString())
+    } catch (e) {
+      console.error('Sync from Supabase error:', e)
+    }
+  }
+  
+  // 执行全量同步
+  const performFullSync = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('movies')
+        .select('*')
+        .order('"watchDate"', { ascending: false })
+      
+      if (error) {
+        console.error('Full sync failed:', error)
+        return
+      }
+      
+      if (data && data.length > 0) {
+        movies.value = data.map(dbToLocal)
+        await idb.bulkImport(movies.value)
+        console.log(`Full synced ${data.length} movies`)
+      }
+    } catch (e) {
+      console.error('Perform full sync error:', e)
+    }
+  }
 
-  // ========== 初始化 ==========
-  // 延迟加载，等 authStore 初始化完成
-  setTimeout(() => loadData(), 100)
+  // ========== 初始化已移至 main.js ==========
 
   // ========== WebDAV 自动备份 ==========
   const autoBackup = async () => {
@@ -166,10 +254,12 @@ export const useMovieStore = defineStore('movie', () => {
 
   // ========== CRUD ==========
   const addMovie = async (movie) => {
-    if (isLoggedIn()) {
+    const auth = getAuthStore()
+    
+    if (auth.isLoggedIn) {
       // 已登录：写 Supabase
       try {
-        const record = { ...localToDb(movie), user_id: useAuthStore().user.id }
+        const record = { ...localToDb(movie), user_id: auth.userId }
         const { data, error } = await supabase.from('movies').insert([record]).select().single()
         if (error) throw error
         const added = dbToLocal(data)
@@ -195,28 +285,36 @@ export const useMovieStore = defineStore('movie', () => {
     const index = movies.value.findIndex(m => m.id === id)
     if (index === -1) return null
 
-    if (isLoggedIn()) {
-      const fieldMap = {
-        title: 'title', releaseYear: 'releaseYear', genres: 'genres',
-        mediaType: 'mediaType', personalRating: 'personalRating', watchDate: 'watchDate',
-        overview: 'overview', tmdbId: 'tmdbId', cover: 'coverUrl', backdrop: 'backdropUrl', actors: 'actors'
-      }
-      const dbUpdates = {}
-      for (const [key, dbKey] of Object.entries(fieldMap)) {
-        if (key in updates) dbUpdates[dbKey] = updates[key]
-      }
-      try {
-        const { error } = await supabase.from('movies').update(dbUpdates).eq('id', id)
-        if (error) console.error('Update in Supabase failed:', error)
-      } catch (e) {
-        console.error('Update movie error:', e)
-      }
-    } else {
-      await idb.updateMovie(id, updates)
-    }
+    const auth = getAuthStore()
 
-    movies.value[index] = { ...movies.value[index], ...updates }
-    autoBackup()
+    // 本地状态使用 cover/backdrop（由 dbToLocal 定义），直接使用 updates
+    // 先更新本地状态，确保UI立即响应
+    const updatedMovie = { ...movies.value[index], ...updates }
+    movies.value[index] = updatedMovie
+    
+    // 强制触发响应式更新，确保所有组件都能检测到变化
+    movies.value = [...movies.value]
+
+    // 后台异步同步到数据库，不阻塞UI
+    const syncToDb = async () => {
+      if (auth.isLoggedIn) {
+        // 使用 localToDb 转换为数据库格式（cover -> coverUrl, backdrop -> backdropUrl）
+        const dbUpdates = localToDb(updates)
+        try {
+          const { error } = await supabase.from('movies').update(dbUpdates).eq('id', id)
+          if (error) {
+            console.error('Update in Supabase failed:', error)
+          }
+        } catch (e) {
+          console.error('Update movie error:', e)
+        }
+      } else {
+        await idb.updateMovie(id, updates)
+      }
+      autoBackup()
+    }
+    syncToDb().catch(console.error)
+
     return movies.value[index]
   }
 
@@ -240,6 +338,23 @@ export const useMovieStore = defineStore('movie', () => {
     return true
   }
 
+  const clearAllMovies = async () => {
+    if (isLoggedIn()) {
+      try {
+        const { error } = await supabase.from('movies').delete().neq('id', '')
+        if (error) console.error('Delete all from Supabase failed:', error)
+      } catch (e) {
+        console.error('Clear all movies error:', e)
+      }
+    } else {
+      await idb.clearAll()
+    }
+    
+    movies.value = []
+    autoBackup()
+    localStorage.removeItem(STORAGE_KEY)
+  }
+
   // ========== 登录后数据迁移 ==========
   const migrateLocalToSupabase = async () => {
     // 1. 获取 IndexedDB 中的本地数据
@@ -258,7 +373,7 @@ export const useMovieStore = defineStore('movie', () => {
 
     if (localMovies.length === 0) return 0
 
-    const userId = useAuthStore().user.id
+    const userId = getAuthStore().userId
 
     // 2. 获取 Supabase 中已有数据，避免重复
     const { data: existing } = await supabase.from('movies').select('title, "watchDate"')
@@ -379,11 +494,11 @@ export const useMovieStore = defineStore('movie', () => {
   return {
     movies, filterState, loading,
     setFilterState, clearFilterState,
-    addMovie, updateMovie, deleteMovie,
+    addMovie, updateMovie, deleteMovie, clearAllMovies,
     getMovieById, getMoviesByType, searchMovies, filterMovies,
     sortedByWatchDate, totalCount, movieCountByType, averageRating,
     currentMonthCount, allYears, allGenres, allRatings, getRandomMovie,
-    loadData, loadFromSupabase, syncToSupabase,
+    loadData, loadFromSupabase, syncFromSupabase, syncToSupabase,
     migrateLocalToSupabase, switchToLocal
   }
 })

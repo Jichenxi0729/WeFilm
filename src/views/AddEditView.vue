@@ -366,7 +366,7 @@ const validateForm = () => {
   return true
 }
 
-const saveMovie = () => {
+const saveMovie = async () => {
   if (!validateForm()) return
   
   const movieData = {
@@ -374,26 +374,29 @@ const saveMovie = () => {
     actors: form.actors.filter(a => a.trim())
   }
   
-  if (isEditing.value) {
-    movieStore.updateMovie(route.params.id, movieData)
-    uiStore.showToast('更新成功', 'success')
-  } else {
-    movieStore.addMovie(movieData)
-    uiStore.showToast('添加成功', 'success')
+  try {
+    if (isEditing.value) {
+      await movieStore.updateMovie(route.params.id, movieData)
+      uiStore.showToast('更新成功', 'success')
+    } else {
+      await movieStore.addMovie(movieData)
+      uiStore.showToast('添加成功', 'success')
+    }
+    
+    setTimeout(() => {
+      router.back()
+    }, 300)
+  } catch (e) {
+    uiStore.showToast('保存失败', 'error')
+    console.error('Save movie error:', e)
   }
-  
-  setTimeout(() => {
-    router.back()
-  }, 500)
 }
 
 const confirmDelete = () => {
   if (confirm('确定要删除这部作品吗？')) {
     movieStore.deleteMovie(route.params.id)
     uiStore.showToast('删除成功', 'success')
-    setTimeout(() => {
-      router.push('/')
-    }, 500)
+    router.push('/')
   }
 }
 
@@ -429,7 +432,10 @@ const selectTmdbResult = async (result) => {
   form.overview = transformed.overview
   form.releaseYear = transformed.releaseYear
   form.genres = mapTmdbGenres(transformed.genres) || []
-  form.mediaType = transformed.mediaType
+  // 编辑模式下保持媒体类型（电影/电视/短剧）不变，新增时才从TMDB获取
+  if (!isEditing.value) {
+    form.mediaType = transformed.mediaType
+  }
 
   try {
     const isMovie = result.media_type === 'movie'
@@ -476,7 +482,36 @@ onMounted(() => {
   if (isEditing.value) {
     const movie = movieStore.getMovieById(route.params.id)
     if (movie) {
-      Object.assign(form, movie)
+      // 重置 form 为初始状态
+      Object.keys(form).forEach(key => {
+        if (key === 'watchDate') {
+          form[key] = new Date().toISOString().split('T')[0]
+        } else if (key === 'runtime') {
+          form[key] = null
+        } else if (key === 'personalRating') {
+          form[key] = 0
+        } else if (Array.isArray(form[key])) {
+          form[key] = []
+        } else {
+          form[key] = ''
+        }
+      })
+      // 然后赋值电影数据
+      Object.assign(form, {
+        tmdbId: movie.tmdbId || '',
+        title: movie.title || '',
+        cover: movie.cover || '',
+        backdrop: movie.backdrop || '',
+        overview: movie.overview || '',
+        actors: movie.actors ? [...movie.actors] : [],
+        releaseYear: movie.releaseYear || '',
+        runtime: movie.runtime || null,
+        watchDate: movie.watchDate || new Date().toISOString().split('T')[0],
+        genres: movie.genres ? [...movie.genres] : [],
+        personalRating: movie.personalRating || 0,
+        personalReview: movie.personalReview || '',
+        mediaType: movie.mediaType || 'movie'
+      })
     }
   }
 })

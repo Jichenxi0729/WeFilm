@@ -332,6 +332,19 @@
               class="hidden"
             />
           </div>
+          <div class="pt-3 border-t border-gray-100">
+            <button
+              @click="confirmClearAll"
+              :disabled="movieStore.movies.length === 0"
+              class="w-full px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              清除所有数据
+            </button>
+            <p class="text-xs text-gray-400 text-center mt-2">此操作不可恢复，请谨慎操作</p>
+          </div>
         </div>
       </div>
 
@@ -796,5 +809,27 @@ const parseCSVLine = (line) => {
   result.push(current.trim())
 
   return result
+}
+
+const confirmClearAll = async () => {
+  const count = movieStore.movies.length
+  if (count === 0) return
+
+  if (!confirm(`确定要清除所有 ${count} 条数据吗？此操作不可恢复！`)) {
+    return
+  }
+
+  if (authStore.isLoggedIn) {
+    if (!confirm('您当前处于登录状态，清除数据将同时删除云端数据。确定继续吗？')) {
+      return
+    }
+  }
+
+  try {
+    await movieStore.clearAllMovies()
+    uiStore.showToast('已清除所有数据', 'success')
+  } catch (error) {
+    uiStore.showToast('清除失败: ' + error.message, 'error')
+  }
 }
 </script>
