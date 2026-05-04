@@ -112,28 +112,6 @@
         </div>
       </div>
 
-      <div v-if="showMigrationPrompt" class="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <h3 class="text-sm font-medium text-blue-700 mb-2">数据迁移</h3>
-        <p class="text-xs text-blue-600 mb-3">
-          检测到您有 {{ localDataCount }} 条本地数据。是否迁移到云端？
-        </p>
-        <div class="flex gap-2">
-          <button
-            @click="handleMigrate"
-            :disabled="isMigrating"
-            class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 disabled:opacity-50"
-          >
-            {{ isMigrating ? '迁移中...' : '迁移数据' }}
-          </button>
-          <button
-            @click="showMigrationPrompt = false"
-            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm"
-          >
-            暂不迁移
-          </button>
-        </div>
-      </div>
-
       <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <h2 class="text-sm font-medium text-gray-700 mb-3">WebDAV云备份</h2>
 
@@ -454,9 +432,7 @@ const authPassword = ref('')
 const authError = ref('')
 const authSuccess = ref('')
 
-const showMigrationPrompt = ref(false)
-const localDataCount = ref(0)
-const isMigrating = ref(false)
+
 
 webdavUrl.value = webdavStore.config.url
 webdavUsername.value = webdavStore.config.username
@@ -481,7 +457,6 @@ const handleAuth = async () => {
       authPassword.value = ''
       // 登录成功后立即从 Supabase 加载数据
       await movieStore.loadFromSupabase()
-      await checkAndPromptMigration()
     } else {
       authError.value = result.error
     }
@@ -502,45 +477,8 @@ const handleLogout = async () => {
   await movieStore.switchToLocal()
 }
 
-const checkAndPromptMigration = async () => {
-  if (!authStore.isLoggedIn) return
-
-  try {
-    const localData = await idb.getAllMovies()
-    localDataCount.value = localData.length
-
-    if (localDataCount.value > 0) {
-      showMigrationPrompt.value = true
-    }
-  } catch (e) {
-    console.error('检查本地数据失败:', e)
-  }
-}
-
-const handleMigrate = async () => {
-  isMigrating.value = true
-  try {
-    const count = await movieStore.migrateLocalToSupabase()
-    showMigrationPrompt.value = false
-    alert(`成功迁移 ${count} 条数据到云端！`)
-  } catch (e) {
-    alert('迁移失败: ' + e.message)
-  } finally {
-    isMigrating.value = false
-  }
-}
-
 onMounted(async () => {
   await authStore.initAuth()
-  if (authStore.isLoggedIn) {
-    await checkAndPromptMigration()
-  }
-})
-
-watch(() => authStore.isLoggedIn, async (loggedIn) => {
-  if (loggedIn) {
-    await checkAndPromptMigration()
-  }
 })
 
 const saveWebdavConfig = async () => {
@@ -740,6 +678,20 @@ const exportData = () => {
   document.body.removeChild(link)
 }
 
+const formatDateForInput = (dateStr) => {
+  if (!dateStr) return null
+  
+  const match = dateStr.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/)
+  if (match) {
+    const year = match[1]
+    const month = String(match[2]).padStart(2, '0')
+    const day = String(match[3]).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  
+  return dateStr
+}
+
 const importData = (event) => {
   const file = event.target.files[0]
   if (!file) return
@@ -766,7 +718,7 @@ const importData = (event) => {
           genres: values[2] ? values[2].split(';').filter(g => g) : [],
           mediaType: values[3] || 'movie',
           personalRating: values[4] ? parseFloat(values[4]) : 0,
-          watchDate: values[5] || new Date().toISOString().split('T')[0],
+          watchDate: formatDateForInput(values[5]) || new Date().toISOString().split('T')[0],
           overview: values[6] || '',
           cover: values[7] || '',
           backdrop: values[8] || '',

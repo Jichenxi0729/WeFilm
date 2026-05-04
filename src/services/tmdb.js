@@ -137,6 +137,18 @@ export const getTvCredits = async (id) => {
   }
 }
 
+export const getTvSeasons = async (id) => {
+  try {
+    const response = await tmdbClient.get(`/tv/${id}`, {
+      params: { language: 'zh-CN' }
+    })
+    return response.data.seasons || []
+  } catch (error) {
+    console.error('TMDB TV seasons error:', error)
+    throw error
+  }
+}
+
 export const getPersonDetails = async (id) => {
   try {
     const response = await tmdbClient.get(`/person/${id}`, {

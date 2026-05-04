@@ -238,6 +238,32 @@
           <div v-else-if="tmdbResults.length === 0" class="text-center py-8 text-gray-500">
             搜索以获取TMDB结果
           </div>
+          <div v-if="seasons.length > 1">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="font-medium text-gray-900">选择季数（更换封面）</h4>
+              <button @click="seasons = []" class="text-sm text-gray-500 hover:text-gray-700">返回选择</button>
+            </div>
+            <div v-if="seasonLoading" class="flex items-center justify-center py-4">
+              <div class="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+            </div>
+            <div v-else class="flex flex-wrap gap-2">
+              <button
+                @click="selectedTmdbResult && applyTmdbResult(selectedTmdbResult, null, 0)"
+                class="px-3 py-1.5 rounded-lg text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+              >
+                默认封面
+              </button>
+              <button
+                v-for="season in seasons"
+                :key="season.season_number"
+                @click="selectedTmdbResult && applyTmdbResult(selectedTmdbResult, null, season.season_number)"
+                class="px-3 py-1.5 rounded-lg text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors flex items-center gap-2"
+              >
+                第{{ season.season_number }}季
+                <span v-if="season.episode_count" class="text-xs opacity-70">({{ season.episode_count }}集)</span>
+              </button>
+            </div>
+          </div>
           <div 
             v-else
             v-for="result in tmdbResults"
@@ -281,7 +307,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMovieStore } from '../stores/movieStore'
 import { useUiStore } from '../stores/uiStore'
-import { searchMulti, transformTmdbResult, getMovieCredits, getTvCredits, getMovieDetails, getTvDetails, getBackdropUrl, mapTmdbGenres } from '../services/tmdb'
+import { searchMulti, transformTmdbResult, getMovieCredits, getTvCredits, getMovieDetails, getTvDetails, getBackdropUrl, mapTmdbGenres, getTvSeasons, getPosterUrl } from '../services/tmdb'
 
 const router = useRouter()
 const route = useRoute()
@@ -314,6 +340,9 @@ const showTmdbInfo = ref(false)
 const tmdbQuery = ref('')
 const tmdbResults = ref([])
 const tmdbLoading = ref(false)
+const seasons = ref([])
+const seasonLoading = ref(false)
+const selectedTmdbResult = ref(null)
 
 const goBack = () => {
   router.back()
@@ -424,15 +453,52 @@ const searchTmdb = async () => {
 
 const selectTmdbResult = async (result) => {
   const transformed = transformTmdbResult(result)
+  selectedTmdbResult.value = result
+  
+  if (result.media_type === 'tv') {
+    seasonLoading.value = true
+    try {
+      seasons.value = await getTvSeasons(result.id)
+      // 如果只有1季或没有季数数据，直接应用结果
+      if (seasons.value.length <= 1) {
+        applyTmdbResult(result, transformed, 0)
+      }
+    } catch (error) {
+      console.error('Failed to fetch seasons:', error)
+      seasons.value = []
+      applyTmdbResult(result, transformed, 0)
+    } finally {
+      seasonLoading.value = false
+    }
+  } else {
+    seasons.value = []
+    applyTmdbResult(result, transformed, 0)
+  }
+}
+
+const applyTmdbResult = async (result, transformed = null, seasonNumber = 0) => {
+  if (!transformed) {
+    transformed = transformTmdbResult(result)
+  }
   
   form.tmdbId = transformed.tmdbId
-  form.title = transformed.title
-  form.cover = transformed.cover
+  
+  if (seasonNumber > 0) {
+    const season = seasons.value.find(s => s.season_number === seasonNumber)
+    if (season && season.poster_path) {
+      form.cover = getPosterUrl(season.poster_path, 'w342')
+    } else {
+      form.cover = transformed.cover
+    }
+  } else {
+    form.cover = transformed.cover
+  }
+  
   form.backdrop = transformed.backdrop
   form.overview = transformed.overview
   form.releaseYear = transformed.releaseYear
   form.genres = mapTmdbGenres(transformed.genres) || []
-  // 编辑模式下保持媒体类型（电影/电视/短剧）不变，新增时才从TMDB获取
+  
   if (!isEditing.value) {
     form.mediaType = transformed.mediaType
   }
@@ -461,14 +527,6 @@ const selectTmdbResult = async (result) => {
       if (credits && credits.cast) {
         form.actors = credits.cast.slice(0, 10).map(actor => actor.name)
       }
-    }
-    
-    const credits = isMovie 
-      ? await getMovieCredits(result.id)
-      : await getTvCredits(result.id)
-    
-    if (credits && credits.cast) {
-      form.actors = credits.cast.slice(0, 10).map(actor => actor.name)
     }
   } catch (error) {
     console.error('Failed to fetch details:', error)

@@ -135,11 +135,10 @@ export const useMovieStore = defineStore('movie', () => {
     loading.value = true
     try {
       if (isLoggedIn()) {
-        // 加载速度优先：先从本地缓存快速加载
-        await loadFromLocal()
-        // 然后在后台静默同步云端数据
-        syncFromSupabase().catch(console.error)
+        // 登录状态：优先从云端加载
+        await loadFromSupabase()
       } else {
+        // 未登录：从本地加载
         await loadFromLocal()
       }
     } finally {
@@ -355,51 +354,6 @@ export const useMovieStore = defineStore('movie', () => {
     localStorage.removeItem(STORAGE_KEY)
   }
 
-  // ========== 登录后数据迁移 ==========
-  const migrateLocalToSupabase = async () => {
-    // 1. 获取 IndexedDB 中的本地数据
-    let localMovies = []
-    try {
-      localMovies = await idb.getAllMovies()
-    } catch {}
-
-    // 也检查 localStorage 是否有旧数据
-    if (localMovies.length === 0) {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) {
-        try { localMovies = JSON.parse(stored) } catch {}
-      }
-    }
-
-    if (localMovies.length === 0) return 0
-
-    const userId = getAuthStore().userId
-
-    // 2. 获取 Supabase 中已有数据，避免重复
-    const { data: existing } = await supabase.from('movies').select('title, "watchDate"')
-    const existingSet = new Set((existing || []).map(m => `${m.title}|${m.watchDate}`))
-
-    const newRecords = localMovies
-      .filter(m => !existingSet.has(`${m.title}|${m.watchDate}`))
-      .map(m => ({ ...localToDb(m), user_id: userId }))
-
-    if (newRecords.length === 0) return 0
-
-    const { data, error } = await supabase.from('movies').insert(newRecords).select()
-    if (error) {
-      console.error('Migration failed:', error)
-      return 0
-    }
-
-    // 3. 重新加载 Supabase 数据
-    await loadFromSupabase()
-
-    // 4. 清空 IndexedDB 本地数据（已迁移完成）
-    try { await idb.clearAll() } catch {}
-
-    return data.length
-  }
-
   // ========== 登出时切换回本地 ==========
   const switchToLocal = async () => {
     movies.value = []
@@ -486,11 +440,6 @@ export const useMovieStore = defineStore('movie', () => {
     return movies.value[Math.floor(Math.random() * movies.value.length)]
   }
 
-  const syncToSupabase = async () => {
-    // 兼容旧逻辑，现在用 migrateLocalToSupabase 替代
-    return migrateLocalToSupabase()
-  }
-
   return {
     movies, filterState, loading,
     setFilterState, clearFilterState,
@@ -498,7 +447,6 @@ export const useMovieStore = defineStore('movie', () => {
     getMovieById, getMoviesByType, searchMovies, filterMovies,
     sortedByWatchDate, totalCount, movieCountByType, averageRating,
     currentMonthCount, allYears, allGenres, allRatings, getRandomMovie,
-    loadData, loadFromSupabase, syncFromSupabase, syncToSupabase,
-    migrateLocalToSupabase, switchToLocal
+    loadData, loadFromSupabase, syncFromSupabase, switchToLocal
   }
 })

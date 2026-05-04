@@ -103,9 +103,9 @@
             <div class="flex gap-4">
               <div class="w-24 h-32 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                 <img 
-                  v-if="selectedMovie.cover" 
-                  :src="selectedMovie.cover" 
-                  :alt="selectedMovie.title"
+                  v-if="form.cover" 
+                  :src="form.cover" 
+                  :alt="form.title"
                   class="w-full h-full object-cover"
                 />
               </div>
@@ -139,6 +139,32 @@
                     />
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div v-if="form.mediaType === 'tv' && seasons.length > 1">
+              <label class="block text-xs text-gray-500 mb-2">选择季数</label>
+              <div v-if="seasonLoading" class="flex items-center justify-center py-4">
+                <div class="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+              </div>
+              <div v-else class="flex flex-wrap gap-2">
+                <button
+                  @click="handleSeasonChange(0)"
+                  class="px-3 py-1.5 rounded-lg text-sm transition-colors"
+                  :class="form.season === 0 ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                >
+                  整部剧集
+                </button>
+                <button
+                  v-for="season in seasons"
+                  :key="season.season_number"
+                  @click="handleSeasonChange(season.season_number)"
+                  class="px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-2"
+                  :class="form.season === season.season_number ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                >
+                  第{{ season.season_number }}季
+                  <span v-if="season.episode_count" class="text-xs opacity-70">({{ season.episode_count }}集)</span>
+                </button>
               </div>
             </div>
 
@@ -239,7 +265,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMovieStore } from '../stores/movieStore'
 import { useUiStore } from '../stores/uiStore'
-import { searchMulti, transformTmdbResult, getMovieCredits, getTvCredits, mapTmdbGenres } from '../services/tmdb'
+import { searchMulti, transformTmdbResult, getMovieCredits, getTvCredits, mapTmdbGenres, getTvSeasons, getPosterUrl } from '../services/tmdb'
 
 const router = useRouter()
 const movieStore = useMovieStore()
@@ -263,8 +289,12 @@ const form = reactive({
   watchDate: new Date().toISOString().split('T')[0],
   personalRating: 0,
   personalReview: '',
-  mediaType: 'movie'
+  mediaType: 'movie',
+  season: 0
 })
+
+const seasons = ref([])
+const seasonLoading = ref(false)
 
 const isAlreadyAdded = (result) => {
   const tmdbId = result.id
@@ -303,10 +333,6 @@ const search = async () => {
 }
 
 const selectResult = async (result) => {
-  if (isAlreadyAdded(result)) {
-    uiStore.showToast('该作品已添加', 'warning')
-    return
-  }
 
   const transformed = transformTmdbResult(result)
   
@@ -324,6 +350,7 @@ const selectResult = async (result) => {
   form.actors = []
   form.personalRating = 0
   form.personalReview = ''
+  form.season = 0
 
   try {
     const credits = result.media_type === 'movie' 
@@ -336,8 +363,47 @@ const selectResult = async (result) => {
   } catch (error) {
     console.error('Failed to fetch credits:', error)
   }
+
+  if (result.media_type === 'tv') {
+    seasonLoading.value = true
+    try {
+      seasons.value = await getTvSeasons(result.id)
+    } catch (error) {
+      console.error('Failed to fetch seasons:', error)
+      seasons.value = []
+    } finally {
+      seasonLoading.value = false
+    }
+  } else {
+    seasons.value = []
+  }
   
   showAddForm.value = true
+}
+
+const handleSeasonChange = (seasonNumber) => {
+  form.season = seasonNumber
+  
+  if (seasonNumber > 0 && seasons.value.length > 0) {
+    const season = seasons.value.find(s => s.season_number === seasonNumber)
+    if (season && season.poster_path) {
+      form.cover = getPosterUrl(season.poster_path, 'w342')
+    }
+  } else {
+    form.cover = selectedMovie.cover || ''
+  }
+}
+
+const isSeasonAlreadyAdded = (seasonNumber) => {
+  if (seasonNumber > 0) {
+    const seasonTitle = `${form.title} 第${seasonNumber}季`
+    return movieStore.movies.some(movie => movie.title === seasonTitle)
+  } else {
+    return movieStore.movies.some(movie => {
+      const movieTitle = movie.title || ''
+      return movieTitle === form.title && !movieTitle.includes('第') && !movieTitle.includes('季')
+    })
+  }
 }
 
 const addToCollection = () => {
@@ -345,10 +411,23 @@ const addToCollection = () => {
     uiStore.showToast('请输入作品名称', 'warning')
     return
   }
+
+  if (isSeasonAlreadyAdded(form.season)) {
+    if (form.season > 0) {
+      uiStore.showToast(`第${form.season}季已添加`, 'warning')
+    } else {
+      uiStore.showToast('整部剧集已添加', 'warning')
+    }
+    return
+  }
   
-  movieStore.addMovie({
-    ...form
-  })
+  const movieData = { ...form }
+  
+  if (form.season > 0) {
+    movieData.title = `${form.title} 第${form.season}季`
+  }
+  
+  movieStore.addMovie(movieData)
   
   uiStore.showToast('添加成功', 'success')
   showAddForm.value = false
