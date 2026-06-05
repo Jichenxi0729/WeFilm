@@ -11,16 +11,30 @@
       
       <div class="mt-3 flex items-center justify-between">
         <CategoryTabs v-model="activeTab" />
-        <button
-          v-if="movieStore.movies.length > 0"
-          @click="goToRandom"
-          class="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
-          title="随机选择一部作品"
-        >
-          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </button>
+        <div class="flex items-center gap-2">
+          <button
+            @click="toggleViewMode"
+            class="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+            :title="viewMode === 'poster' ? '切换到剧照视图' : '切换到海报视图'"
+          >
+            <svg v-if="viewMode === 'poster'" class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+            <svg v-else class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+            </svg>
+          </button>
+          <button
+            v-if="movieStore.movies.length > 0"
+            @click="goToRandom"
+            class="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+            title="随机选择一部作品"
+          >
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -32,10 +46,10 @@
           @click="goToDetail(movie.id)"
           class="cursor-pointer"
         >
-          <div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-gray-100">
+          <div class="relative rounded-lg overflow-hidden bg-gray-100" :class="viewMode === 'poster' ? 'aspect-[2/3]' : 'aspect-[4/3]'">
             <img 
-              v-if="movie.cover && !imageErrors[movie.id]" 
-              :src="movie.cover" 
+              v-if="getDisplayImage(movie) && !imageErrors[movie.id]" 
+              :src="getDisplayImage(movie)" 
               :alt="movie.title"
               class="w-full h-full object-cover"
               @error="handleImageError(movie.id)"
@@ -127,7 +141,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMovieStore } from '../stores/movieStore'
 import { useUiStore } from '../stores/uiStore'
@@ -145,7 +159,27 @@ const activeTab = computed({
   set: (value) => { uiStore.activeTab = value }
 })
 
+const viewMode = computed({
+  get: () => uiStore.viewMode,
+  set: (value) => { uiStore.viewMode = value }
+})
+
+const toggleViewMode = () => {
+  uiStore.viewMode = uiStore.viewMode === 'poster' ? 'still' : 'poster'
+}
+
 const imageErrors = ref({})
+
+watch(viewMode, () => {
+  imageErrors.value = {}
+})
+
+const getDisplayImage = (movie) => {
+  if (viewMode.value === 'still') {
+    return movie.backdrop || movie.cover
+  }
+  return movie.cover
+}
 
 const handleImageError = (movieId) => {
   imageErrors.value[movieId] = true

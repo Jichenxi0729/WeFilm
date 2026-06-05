@@ -5,6 +5,7 @@ const GRID_COLUMNS_KEY = 'movie-record-grid-columns'
 const ACTIVE_TAB_KEY = 'movie-record-active-tab'
 const PURE_COVER_KEY = 'movie-record-pure-cover'
 const CHART_SETTINGS_KEY = 'movie-record-chart-settings'
+const VIEW_MODE_KEY = 'movie-record-view-mode'
 
 export const useUiStore = defineStore('ui', () => {
   const isLoading = ref(false)
@@ -36,6 +37,13 @@ export const useUiStore = defineStore('ui', () => {
   }
 
   const pureCoverMode = ref(loadPureCover())
+
+  const loadViewMode = () => {
+    const stored = localStorage.getItem(VIEW_MODE_KEY)
+    return stored || 'poster' // 'poster' = 2:3竖版, 'still' = 4:3横版
+  }
+
+  const viewMode = ref(loadViewMode())
 
   const defaultChartSettings = {
     showTypePie: true,
@@ -69,6 +77,10 @@ export const useUiStore = defineStore('ui', () => {
 
   watch(pureCoverMode, (newValue) => {
     localStorage.setItem(PURE_COVER_KEY, newValue.toString())
+  })
+
+  watch(viewMode, (newValue) => {
+    localStorage.setItem(VIEW_MODE_KEY, newValue)
   })
 
   watch(chartSettings, (newValue) => {
@@ -119,6 +131,7 @@ export const useUiStore = defineStore('ui', () => {
     gridColumns,
     activeTab,
     pureCoverMode,
+    viewMode,
     chartSettings,
     setLoading,
     openTmdbModal,

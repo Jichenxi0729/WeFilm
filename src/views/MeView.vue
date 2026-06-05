@@ -242,7 +242,10 @@
       <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <h2 class="text-sm font-medium text-gray-700 mb-3">显示设置</h2>
         <div class="flex items-center justify-between">
-          <span class="text-gray-600">首页作品列数</span>
+          <div>
+            <p class="text-gray-600">首页展示列数</p>
+            <p class="text-xs text-gray-400">海报与剧照视图均生效</p>
+          </div>
           <div class="flex gap-2">
             <button
               @click="setGridColumns(2)"
